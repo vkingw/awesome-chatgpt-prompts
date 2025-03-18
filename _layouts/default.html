@@ -5,21 +5,8 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1">
 
-    <title>prompts.chat — awesome AI prompts</title>
-{% seo %}
-    <link rel="stylesheet" href="{{ "/assets/css/style.css?v=" | append: site.github.build_revision | relative_url }}">
-    <style>
-      :root {
-        --bg-color-light: #ffffff;
-        --bg-color-dark: #1a1a1a;
-        --text-color-light: #000000;
-        --text-color-dark: #ffffff;
-        --header-height: 145px;
-        --footer-height: 145px;
-        --sidebar-width: 300px;
-        --accent-color: #10b981;
-        --accent-color-hover: #059669;
-      }
+    <title>{{ page.title | default: site.title }} — awesome AI prompts</title>
+    {% seo %}
 
       body {
         background-color: var(--bg-color-light);
@@ -1397,7 +1384,7 @@
           width: 100%;
           order: -1;
         }
-        
+
         .main-content-header .dev-mode-label {
           display: inline-block;
         }
@@ -1728,7 +1715,7 @@
           margin-bottom: 12px;
           width: 100%;
         }
-        
+
         .custom-select,
         .custom-input {
           width: 100%;
@@ -1862,7 +1849,7 @@
       .cursor-logo path[fill="#fff"] {
         transition: fill 0.2s ease;
       }
-      
+
       .dark-mode .cursor-logo path[fill="#fff"] {
         fill: #2d2d2d;
       }
@@ -1874,7 +1861,7 @@
       }
     </style>
   </head>
-  <body>
+  <body class="{{ page.body_class | default: '' }}">
     <div class="layout-wrapper">
       <!-- Copilot Suggestion Modal Backdrop -->
       <div class="copilot-suggestion-backdrop"></div>
@@ -1896,8 +1883,15 @@
       </div>
       <header class="site-header">
         <div class="header-left">
-          <h1 class="site-title">prompts.chat</h1>
-          <p class="site-slogan">World's First & Most Famous Prompts Directory</p>
+          <h1 class="site-title">{{ page.title | default: site.title }}</h1>
+          <p class="site-slogan">{{ page.subtitle | default: site.subtitle }}
+            {% if page.subpage != true %}
+            <a href="/vibe" class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 hover:bg-green-200 transition-colors">
+              New: Try Vibe Coding Mode!
+            </a>
+            {% endif %}
+          </p>
+          {% if page.hide_platform_selector != true %}
           <div class="site-description">
             <p class="platform-hint">Choose your AI platform</p>
             <div class="platform-pills">
@@ -1918,6 +1912,7 @@
               <button class="platform-tag" data-platform="llama" data-url="https://meta.ai">Meta</button>
             </div>
           </div>
+          {% endif %}
         </div>
         <div class="header-right">
           <a href="https://cursor.com" target="_blank" class="cursor-logo" title="Built with Cursor AI">
@@ -1928,7 +1923,7 @@
               <path d="M22.35 6L11.925 24V12L22.35 6z" fill="#fff" class="cursor-logo-path dark-mode-path"></path>
               <path d="M22.35 6l-10.425 6L1.5 6h20.85z" fill="#fff" class="cursor-logo-path dark-mode-path"></path>
             </svg>
-            <span>Built with Cursor AI</span>
+            <span>vibecoded with cursor</span>
           </a>
           <a href="https://github.com/f/awesome-chatgpt-prompts/stargazers" target="_blank" class="star-count">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -1965,6 +1960,7 @@
           </div>
         </div>
         <div class="main-content">
+          {% if page.hide_platform_selector != true %}
           <div class="main-content-header">
             <div class="header-content">
               <div class="platform-selectors">
@@ -2009,14 +2005,11 @@
               </div>
             </div>
           </div>
+          {% endif %}
           <div class="container-lg markdown-body">
-            {{ content }}
-
-      {% if site.github.private != true and site.github.license %}
-            <div class="footer border-top border-gray-light mt-5 pt-3 text-right text-gray">
-        Awesome ChatGPT Prompts is open source. {% github_edit_link "Improve this page" %}.
+            <div id="promptContent">
+              {{ content }}
             </div>
-            {% endif %}
           </div>
         </div>
       </div>
@@ -2085,10 +2078,11 @@
       </footer>
     </div>
     <script src="script.js"></script>
+    {% if page.hide_tone_selector != true %}
     <script>
       // Initialize audience selector
       const audienceSelect = document.getElementById('audienceSelect');
-      
+
       // Handle Grok platform selection
       document.addEventListener('DOMContentLoaded', () => {
         const grokButton = document.querySelector('[data-platform="grok"]');
@@ -2137,7 +2131,7 @@
             grokButton.textContent = selectedText;
             grokDropdown.style.display = 'none';
             isGrokDropdownVisible = false;
-            
+
             // Also set audience to "everyone" for Grok options
             audienceSelect.value = 'everyone';
             document.body.classList.remove('dev-mode');
@@ -2148,22 +2142,23 @@
           });
         });
       });
-      
+
       // Set initial state based on URL params or default
       const urlParams = new URLSearchParams(window.location.search);
       const initialAudience = urlParams.get('audience') || 'everyone';
       audienceSelect.value = initialAudience;
       document.body.classList.toggle('dev-mode', initialAudience === 'developers');
-      
+
       // Handle audience changes
       audienceSelect.addEventListener('change', (e) => {
         const isDevMode = e.target.value === 'developers';
         document.body.classList.toggle('dev-mode', isDevMode);
-        
+
         // Trigger prompt filtering
         filterPrompts();
       });
     </script>
+    {% endif %}
     <style>video { max-width: 100% !important; }</style>
     <!-- Google tag (gtag.js) -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-MSNHFWTE77"></script>
