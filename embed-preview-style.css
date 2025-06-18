@@ -109,8 +109,8 @@
 
 @media (max-width: 640px) {
     #prompt-container {
-        height: calc(100vh - 120px); /* Smaller on mobile */
-        max-height: calc(100vh - 120px);
+        height: calc(100vh - 90px); /* Smaller on mobile */
+        max-height: calc(100vh - 90px);
     }
 }
 
@@ -119,7 +119,6 @@
     height: 100%;
     overflow-y: auto !important;
     flex: 1;
-    white-space: wrap;
 }
 
 /* Responsive improvements */
@@ -183,6 +182,13 @@
     #copy-button svg {
         width: 14px;
         height: 14px;
+    }
+}
+
+/* Hide file sidebar on mobile devices */
+@media (max-width: 640px) {
+    #file-sidebar {
+        display: none !important;
     }
 }
 
