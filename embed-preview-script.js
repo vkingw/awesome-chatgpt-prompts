@@ -2,6 +2,7 @@ class EmbedPreview {
     constructor() {
         this.params = this.parseURLParams();
         this.config = this.getInitialConfig();
+        this.selectedFiles = new Set(); // Track selected files
         this.init();
     }
     
@@ -25,7 +26,12 @@ class EmbedPreview {
             lightColor: this.params.lightColor || '#3b82f6',
             darkColor: this.params.darkColor || '#60a5fa',
             themeMode: this.params.themeMode || 'auto',
-            filetree: this.params.filetree ? decodeURIComponent(this.params.filetree).split('\n').filter(f => f.trim()) : []
+            filetree: this.params.filetree ? decodeURIComponent(this.params.filetree).split('\n').filter(f => f.trim()) : [],
+            showDiff: this.params.showDiff === 'true',
+            diffFilename: this.params.diffFilename || '',
+            diffOldText: this.params.diffOldText ? decodeURIComponent(this.params.diffOldText) : '',
+            diffNewText: this.params.diffNewText ? decodeURIComponent(this.params.diffNewText) : '',
+            flashButton: this.params.flashButton || 'none'
         };
     }
     
@@ -33,6 +39,7 @@ class EmbedPreview {
         this.setupColors();
         this.setupElements();
         this.render();
+        this.setupResizeListener();
     }
     
     setupColors() {
@@ -186,6 +193,7 @@ class EmbedPreview {
     }
     
     render() {
+        this.renderDiffView();
         this.renderContextPills();
         this.renderPromptText();
         this.renderSettingsPills();
@@ -198,17 +206,27 @@ class EmbedPreview {
         
         container.innerHTML = '';
         
+        // Render initial context from config
         this.config.context.forEach(context => {
-            const pill = this.createContextPill(context);
+            const pill = this.createContextPill(context, false);
+            container.appendChild(pill);
+        });
+        
+        // Render selected files and folders
+        this.selectedFiles.forEach(filePath => {
+            const fileName = this.getFileName(filePath);
+            const pill = this.createContextPill(fileName, true, filePath);
+            pill.title = filePath; // Show full path on hover
             container.appendChild(pill);
         });
     }
     
-    createContextPill(context) {
+    createContextPill(context, isRemovable, fullPath = null) {
         const pill = document.createElement('div');
-        pill.className = 'px-2 py-0.5 rounded-lg text-[0.65rem] font-medium animate-slide-in flex items-center gap-1';
+        pill.className = 'px-2 py-0.5 rounded-lg text-[0.65rem] font-medium animate-slide-in flex items-center gap-1 flex-shrink-0 whitespace-nowrap';
         
         let icon = '';
+        let content = '';
         
         // Use dynamic color classes for all pills
         if (this.isDarkMode) {
@@ -219,24 +237,44 @@ class EmbedPreview {
         
         if (context.startsWith('@')) {
             // @mentions - just show the text
-            pill.innerHTML = '<span>' + context + '</span>';
+            content = '<span>' + context + '</span>';
         } else if (context.startsWith('http://') || context.startsWith('https://')) {
             // Web URLs show world icon
             icon = '<svg class="w-3 h-3" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM4.332 8.027a6.012 6.012 0 011.912-2.706C6.512 5.73 6.974 6 7.5 6A1.5 1.5 0 019 7.5V8a2 2 0 004 0 2 2 0 011.523-1.943A5.977 5.977 0 0116 10c0 .34-.028.675-.083 1H15a2 2 0 00-2 2v2.197A5.973 5.973 0 0110 16v-2a2 2 0 00-2-2 2 2 0 01-2-2 2 2 0 00-1.668-1.973z" clip-rule="evenodd"/></svg>';
-            pill.innerHTML = icon + '<span>' + context + '</span>';
+            content = icon + '<span>' + context + '</span>';
         } else if (context.startsWith('#')) {
             // Any hashtag context shows image icon
             icon = '<svg class="w-3 h-3" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clip-rule="evenodd"/></svg>';
             // Remove hash from display
-            pill.innerHTML = icon + '<span>' + context.substring(1) + '</span>';
-        } else if (context.includes('.')) {
-            // File context (contains a dot)
+            content = icon + '<span>' + context.substring(1) + '</span>';
+        } else if (context.endsWith('/')) {
+            // Folder context (ends with /)
+            icon = '<svg class="w-3 h-3" viewBox="0 0 20 20" fill="currentColor"><path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z"/></svg>';
+            // Keep trailing slash for display
+            content = icon + '<span>' + context + '</span>';
+        } else if (context.includes('.') || isRemovable) {
+            // File context (contains a dot) or removable file from sidebar
             icon = '<svg class="w-3 h-3" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4 2a2 2 0 00-2 2v12a2 2 0 002 2h12a2 2 0 002-2V7.414A2 2 0 0017.414 6L14 2.586A2 2 0 0012.586 2H4zm2 4a1 1 0 011-1h4a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7zm-1 5a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1z" clip-rule="evenodd"/></svg>';
-            pill.innerHTML = icon + '<span>' + context + '</span>';
+            content = icon + '<span>' + context + '</span>';
         } else {
             // Generic context
-            pill.innerHTML = '<span>' + context + '</span>';
+            content = '<span>' + context + '</span>';
         }
+        
+        pill.innerHTML = content;
+        
+        // Add remove button for removable pills
+        if (isRemovable && fullPath) {
+            const removeBtn = document.createElement('button');
+            removeBtn.className = 'ml-0.5 text-dynamic-muted-foreground hover:text-dynamic-foreground transition-colors';
+            removeBtn.innerHTML = '<svg class="w-2.5 h-2.5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>';
+            removeBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.removeFileFromContext(fullPath);
+            });
+            pill.appendChild(removeBtn);
+        }
+        
         return pill;
     }
     
@@ -284,21 +322,21 @@ class EmbedPreview {
     
     createSettingPill(text, type) {
         const pill = document.createElement('div');
-        pill.className = 'rounded-full text-xs font-medium flex items-center gap-1.5';
+        pill.className = 'rounded-full text-[10px] font-medium flex items-center gap-1';
         
         let icon = '';
         
         // Use different styling based on pill type
         if (type === 'mode') {
-            // Mode pill keeps the background
+            // Mode pill keeps the background with reduced padding
             if (this.isDarkMode) {
-                pill.className += ' px-3 py-2 bg-dynamic-primary/20 text-dynamic-foreground border border-dynamic-primary/30';
+                pill.className += ' px-2 py-1 bg-dynamic-primary/20 text-dynamic-foreground border border-dynamic-primary/30';
             } else {
-                pill.className += ' px-3 py-2 bg-dynamic-primary/10 text-dynamic-foreground border border-dynamic-primary/20';
+                pill.className += ' px-2 py-1 bg-dynamic-primary/10 text-dynamic-foreground border border-dynamic-primary/20';
             }
         } else {
             // Model, thinking, and max pills only have text color
-            pill.className += ' pl-1 text-dynamic-primary';
+            pill.className += ' pl-0.5 text-dynamic-primary';
         }
         
         switch (type) {
@@ -310,16 +348,16 @@ class EmbedPreview {
                 const modeType = text.toLowerCase();
                 switch (modeType) {
                     case 'agent':
-                        icon = '<svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18.18 8.04c-.78-.84-1.92-1.54-3.18-1.54-1.44 0-2.7.93-3.48 2.25-.78-1.32-2.04-2.25-3.48-2.25-1.26 0-2.4.7-3.18 1.54-.87.94-1.36 2.11-1.36 3.46 0 1.35.49 2.52 1.36 3.46.78.84 1.92 1.54 3.18 1.54 1.44 0 2.7-.93 3.48-2.25.78 1.32 2.04 2.25 3.48 2.25 1.26 0 2.4-.7 3.18-1.54.87-.94 1.36-2.11 1.36-3.46 0-1.35-.49-2.52-1.36-3.46z"/></svg>';
+                        icon = '<svg class="w-2.5 h-2.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18.18 8.04c-.78-.84-1.92-1.54-3.18-1.54-1.44 0-2.7.93-3.48 2.25-.78-1.32-2.04-2.25-3.48-2.25-1.26 0-2.4.7-3.18 1.54-.87.94-1.36 2.11-1.36 3.46 0 1.35.49 2.52 1.36 3.46.78.84 1.92 1.54 3.18 1.54 1.44 0 2.7-.93 3.48-2.25.78 1.32 2.04 2.25 3.48 2.25 1.26 0 2.4-.7 3.18-1.54.87-.94 1.36-2.11 1.36-3.46 0-1.35-.49-2.52-1.36-3.46z"/></svg>';
                         break;
                     case 'chat':
-                        icon = '<svg class="w-3 h-3" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M18 10c0 3.866-3.582 7-8 7a8.841 8.841 0 01-4.083-.98L2 17l1.338-3.123C2.493 12.767 2 11.434 2 10c0-3.866 3.582-7 8-7s8 3.134 8 7zM7 9H5v2h2V9zm8 0h-2v2h2V9zM9 9h2v2H9V9z" clip-rule="evenodd"/></svg>';
+                        icon = '<svg class="w-2.5 h-2.5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M18 10c0 3.866-3.582 7-8 7a8.841 8.841 0 01-4.083-.98L2 17l1.338-3.123C2.493 12.767 2 11.434 2 10c0-3.866 3.582-7 8-7s8 3.134 8 7zM7 9H5v2h2V9zm8 0h-2v2h2V9zM9 9h2v2H9V9z" clip-rule="evenodd"/></svg>';
                         break;
                     case 'manual':
-                        icon = '<svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 2v20M2 12h20"/><circle cx="12" cy="12" r="3" fill="currentColor"/></svg>';
+                        icon = '<svg class="w-2.5 h-2.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 2v20M2 12h20"/><circle cx="12" cy="12" r="3" fill="currentColor"/></svg>';
                         break;
                     case 'cloud':
-                        icon = '<svg class="w-3 h-3" viewBox="0 0 20 20" fill="currentColor"><path d="M5.5 16a3.5 3.5 0 01-.369-6.98 4 4 0 117.753-1.977A4.5 4.5 0 1113.5 16h-8z"/></svg>';
+                        icon = '<svg class="w-2.5 h-2.5" viewBox="0 0 20 20" fill="currentColor"><path d="M5.5 16a3.5 3.5 0 01-.369-6.98 4 4 0 117.753-1.977A4.5 4.5 0 1113.5 16h-8z"/></svg>';
                         break;
                     default:
                         icon = '';
@@ -329,12 +367,12 @@ class EmbedPreview {
                 break;
             case 'thinking':
                 // Brain icon for thinking mode
-                icon = '<svg class="w-3 h-3" viewBox="0 0 24 24" fill="currentColor"><path d="M19.864 8.465a3.505 3.505 0 0 0-3.03-4.449A3.005 3.005 0 0 0 14 2a2.98 2.98 0 0 0-2 .78A2.98 2.98 0 0 0 10 2c-1.301 0-2.41.831-2.825 2.015a3.505 3.505 0 0 0-3.039 4.45A4.028 4.028 0 0 0 2 12c0 1.075.428 2.086 1.172 2.832A4.067 4.067 0 0 0 3 16c0 1.957 1.412 3.59 3.306 3.934A3.515 3.515 0 0 0 9.5 22c.979 0 1.864-.407 2.5-1.059A3.484 3.484 0 0 0 14.5 22a3.51 3.51 0 0 0 3.19-2.06 4.006 4.006 0 0 0 3.138-5.108A4.003 4.003 0 0 0 22 12a4.028 4.028 0 0 0-2.136-3.535zM9.5 20c-.711 0-1.33-.504-1.47-1.198L7.818 18H7c-1.103 0-2-.897-2-2 0-.352.085-.682.253-.981l.456-.816-.784-.51A2.019 2.019 0 0 1 4 12c0-.977.723-1.824 1.682-1.972l1.693-.26-1.059-1.346a1.502 1.502 0 0 1 1.498-2.39L9 6.207V5a1 1 0 0 1 2 0v13.5c0 .827-.673 1.5-1.5 1.5zm9.575-6.308-.784.51.456.816c.168.3.253.63.253.982 0 1.103-.897 2-2.05 2h-.818l-.162.802A1.502 1.502 0 0 1 14.5 20c-.827 0-1.5-.673-1.5-1.5V5c0-.552.448-1 1-1s1 .448 1 1.05v1.207l1.186-.225a1.502 1.502 0 0 1 1.498 2.39l-1.059 1.347 1.693.26A2.002 2.002 0 0 1 20 12c0 .683-.346 1.315-.925 1.692z"></path></svg>';
+                icon = '<svg class="w-2.5 h-2.5" viewBox="0 0 24 24" fill="currentColor"><path d="M19.864 8.465a3.505 3.505 0 0 0-3.03-4.449A3.005 3.005 0 0 0 14 2a2.98 2.98 0 0 0-2 .78A2.98 2.98 0 0 0 10 2c-1.301 0-2.41.831-2.825 2.015a3.505 3.505 0 0 0-3.039 4.45A4.028 4.028 0 0 0 2 12c0 1.075.428 2.086 1.172 2.832A4.067 4.067 0 0 0 3 16c0 1.957 1.412 3.59 3.306 3.934A3.515 3.515 0 0 0 9.5 22c.979 0 1.864-.407 2.5-1.059A3.484 3.484 0 0 0 14.5 22a3.51 3.51 0 0 0 3.19-2.06 4.006 4.006 0 0 0 3.138-5.108A4.003 4.003 0 0 0 22 12a4.028 4.028 0 0 0-2.136-3.535zM9.5 20c-.711 0-1.33-.504-1.47-1.198L7.818 18H7c-1.103 0-2-.897-2-2 0-.352.085-.682.253-.981l.456-.816-.784-.51A2.019 2.019 0 0 1 4 12c0-.977.723-1.824 1.682-1.972l1.693-.26-1.059-1.346a1.502 1.502 0 0 1 1.498-2.39L9 6.207V5a1 1 0 0 1 2 0v13.5c0 .827-.673 1.5-1.5 1.5zm9.575-6.308-.784.51.456.816c.168.3.253.63.253.982 0 1.103-.897 2-2.05 2h-.818l-.162.802A1.502 1.502 0 0 1 14.5 20c-.827 0-1.5-.673-1.5-1.5V5c0-.552.448-1 1-1s1 .448 1 1.05v1.207l1.186-.225a1.502 1.502 0 0 1 1.498 2.39l-1.059 1.347 1.693.26A2.002 2.002 0 0 1 20 12c0 .683-.346 1.315-.925 1.692z"></path></svg>';
                 pill.innerHTML = icon + '<span>' + text + '</span>';
                 break;
             case 'max':
                 // Lightning bolt icon for MAX mode
-                icon = '<svg class="w-3 h-3" viewBox="0 0 20 20" fill="currentColor"><path d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z"/></svg>';
+                icon = '<svg class="w-2.5 h-2.5" viewBox="0 0 20 20" fill="currentColor"><path d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z"/></svg>';
                 pill.innerHTML = icon + '<span>' + text + '</span>';
                 break;
         }
@@ -342,8 +380,171 @@ class EmbedPreview {
         return pill;
     }
     
+    setupResizeListener() {
+        let resizeTimeout;
+        window.addEventListener('resize', () => {
+            clearTimeout(resizeTimeout);
+            resizeTimeout = setTimeout(() => {
+                this.renderDiffView();
+            }, 100);
+        });
+    }
+    
+    renderDiffView() {
+        const diffView = document.getElementById('diff-view');
+        const diffViewInline = document.getElementById('diff-view-inline');
+        const promptText = document.getElementById('prompt-text');
+        if (!diffView || !diffViewInline) return;
+        
+        const viewportHeight = window.innerHeight;
+        const isCompact = viewportHeight < 400;
+        
+        if (this.config.showDiff && (this.config.diffOldText || this.config.diffNewText)) {
+            // Determine which view to show based on viewport height
+            if (isCompact) {
+                // Show floating diff view
+                diffView.classList.remove('hidden');
+                diffView.classList.add('diff-enter');
+                diffViewInline.classList.add('hidden');
+                this.setupDiffContent('diff-view');
+            } else {
+                // Show inline diff view
+                diffViewInline.classList.remove('hidden');
+                diffView.classList.add('hidden');
+                this.setupDiffContent('diff-view-inline');
+                // Reset margin when switching to inline view
+                if (promptText) {
+                    promptText.style.marginTop = '0';
+                }
+            }
+        } else {
+            diffView.classList.add('hidden');
+            diffViewInline.classList.add('hidden');
+            // Reset margin when diff is hidden
+            if (promptText) {
+                promptText.style.marginTop = '0';
+            }
+        }
+    }
+    
+    setupDiffContent(containerId) {
+        const container = document.getElementById(containerId);
+        if (!container) return;
+        
+        // Count lines in old and new content
+        const oldLines = this.config.diffOldText ? this.config.diffOldText.split('\n').length : 0;
+        const newLines = this.config.diffNewText ? this.config.diffNewText.split('\n').length : 0;
+        
+        // Set filename with line counts
+        const filenameElement = container.querySelector('[id$="-filename"]');
+        if (filenameElement) {
+            const filename = this.config.diffFilename || 'untitled';
+        filenameElement.innerHTML = `
+                <span>${filename}</span>
+                <span class="ml-2 text-[10px] font-mono">
+                    <span class="text-green-600 dark:text-green-400">+${newLines}</span>
+                    <span class="text-red-600 dark:text-red-400">-${oldLines}</span>
+                </span>
+            `;
+        }
+        
+        // Set diff content
+        const oldContent = container.querySelector('[id$="-old-content"]');
+        const newContent = container.querySelector('[id$="-new-content"]');
+        
+        if (oldContent) {
+            oldContent.textContent = this.config.diffOldText || '(empty)';
+            // Update colors based on dark mode
+            if (this.isDarkMode) {
+                oldContent.style.backgroundColor = 'rgba(127, 29, 29, 0.15)';
+                oldContent.style.color = '#fca5a5';
+                oldContent.style.borderColor = 'rgba(127, 29, 29, 0.3)';
+            } else {
+                oldContent.style.backgroundColor = 'rgba(254, 226, 226, 0.7)';
+                oldContent.style.color = '#b91c1c';
+                oldContent.style.borderColor = 'rgba(252, 165, 165, 0.5)';
+            }
+        }
+        if (newContent) {
+            newContent.textContent = this.config.diffNewText || '(empty)';
+            // Update colors based on dark mode
+            if (this.isDarkMode) {
+                newContent.style.backgroundColor = 'rgba(20, 83, 45, 0.15)';
+                newContent.style.color = '#86efac';
+                newContent.style.borderColor = 'rgba(20, 83, 45, 0.3)';
+            } else {
+                newContent.style.backgroundColor = 'rgba(220, 252, 231, 0.7)';
+                newContent.style.color = '#15803d';
+                newContent.style.borderColor = 'rgba(134, 239, 172, 0.5)';
+            }
+        }
+        
+        // Apply flash animation to buttons if configured
+        const acceptButton = container.querySelector('[id$="-accept-diff"]');
+        const rejectButton = container.querySelector('[id$="-reject-diff"]');
+        
+        if (this.config.flashButton === 'accept' && acceptButton) {
+            acceptButton.classList.add('flash-animation');
+            // Remove from reject button if it exists
+            if (rejectButton) rejectButton.classList.remove('flash-animation');
+        } else if (this.config.flashButton === 'reject' && rejectButton) {
+            rejectButton.classList.add('flash-animation');
+            // Remove from accept button if it exists
+            if (acceptButton) acceptButton.classList.remove('flash-animation');
+        } else {
+            // Remove animation from both if 'none'
+            if (acceptButton) acceptButton.classList.remove('flash-animation');
+            if (rejectButton) rejectButton.classList.remove('flash-animation');
+        }
+        
+        // Setup toggle button for floating view only
+        if (containerId === 'diff-view') {
+            const toggleButton = container.querySelector('#toggle-diff');
+            const diffContent = container.querySelector('#diff-content');
+            const promptText = document.getElementById('prompt-text');
+            
+            if (toggleButton && diffContent && promptText) {
+                // Remove existing listeners
+                const newToggleButton = toggleButton.cloneNode(true);
+                toggleButton.parentNode.replaceChild(newToggleButton, toggleButton);
+                
+                // Set initial state - collapsed when compact
+                let isExpanded = false;
+                diffContent.style.maxHeight = '0';
+                diffContent.style.overflow = 'hidden';
+                newToggleButton.querySelector('svg').style.transform = 'rotate(-90deg)';
+                
+                // Function to update prompt margin based on diff view height
+                const updatePromptMargin = () => {
+                    const diffHeight = container.offsetHeight;
+                    promptText.parentElement.style.paddingTop = `${diffHeight + 16}px`; // 16px for some breathing room
+                };
+                
+                // Set initial margin
+                setTimeout(updatePromptMargin, 0);
+                
+                newToggleButton.addEventListener('click', () => {
+                    isExpanded = !isExpanded;
+                    
+                    if (isExpanded) {
+                        diffContent.style.maxHeight = diffContent.scrollHeight + 'px';
+                        newToggleButton.querySelector('svg').style.transform = 'rotate(0deg)';
+                        // Update margin after animation
+                        setTimeout(updatePromptMargin, 300);
+                    } else {
+                        diffContent.style.maxHeight = '0';
+                        diffContent.style.overflow = 'hidden';
+                        newToggleButton.querySelector('svg').style.transform = 'rotate(-90deg)';
+                        // Update margin after animation
+                        setTimeout(updatePromptMargin, 300);
+                    }
+                });
+            }
+        }
+    }
+    
     highlightMentions(text) {
-        return text.replace(/@(\w+)/g, '<span class="mention">@$1</span>');
+        return text.replaceAll(/@(https?:\/\/[^\s]+.*?|\w+\.\w+|\w+)/g, '<span class="mention">@$1</span>');
     }
     
     capitalizeFirst(str) {
@@ -416,6 +617,36 @@ class EmbedPreview {
         }, 2000);
     }
     
+    addFileToContext(filePath) {
+        if (!this.selectedFiles.has(filePath)) {
+            this.selectedFiles.add(filePath);
+            this.renderContextPills();
+            this.renderFileTree(); // Re-render to show selection
+        }
+    }
+    
+    getFileName(filePath) {
+        // Extract just the filename or folder name from the path
+        const cleanPath = filePath.endsWith('/') ? filePath.slice(0, -1) : filePath;
+        const parts = cleanPath.split('/');
+        const name = parts[parts.length - 1];
+        // Add trailing slash back for folders to maintain context
+        return filePath.endsWith('/') ? name + '/' : name;
+    }
+    
+    removeFileFromContext(filePath) {
+        if (this.selectedFiles.has(filePath)) {
+            this.selectedFiles.delete(filePath);
+            this.renderContextPills();
+            this.renderFileTree(); // Re-render to update selection
+        }
+    }
+    
+    getFullPath(node, currentPath = '') {
+        // Helper to get the full path from a node
+        return currentPath ? `${currentPath}/${node.name}` : node.name;
+    }
+    
     buildFileTree(paths) {
         const tree = {};
         
@@ -425,19 +656,26 @@ class EmbedPreview {
             // Remove asterisk if present
             const cleanPath = isHighlighted ? path.slice(0, -1) : path;
             
-            const parts = cleanPath.split('/');
+            // Check if it's a folder (ends with /)
+            const isFolder = cleanPath.endsWith('/');
+            
+            // Remove trailing slash for processing
+            const processPath = isFolder ? cleanPath.slice(0, -1) : cleanPath;
+            
+            const parts = processPath.split('/').filter(p => p !== ''); // Filter out empty strings
             let current = tree;
             
             parts.forEach((part, index) => {
                 if (!current[part]) {
+                    const isLastPart = index === parts.length - 1;
                     current[part] = {
                         name: part,
-                        isFile: index === parts.length - 1,
-                        isHighlighted: index === parts.length - 1 && isHighlighted,
+                        isFile: isLastPart && !isFolder,
+                        isHighlighted: isLastPart && isHighlighted,
                         children: {}
                     };
                 }
-                if (index < parts.length - 1) {
+                if (index < parts.length - 1 || (index === parts.length - 1 && !current[part].isFile)) {
                     current = current[part].children;
                 }
             });
@@ -463,13 +701,13 @@ class EmbedPreview {
             treeContainer.innerHTML = '';
             
             // Render tree
-            this.renderTreeNode(tree, treeContainer, 0);
+            this.renderTreeNode(tree, treeContainer, 0, '');
         } else {
             sidebar.classList.add('hidden');
         }
     }
     
-    renderTreeNode(node, container, level) {
+    renderTreeNode(node, container, level, parentPath) {
         const sortedKeys = Object.keys(node).sort((a, b) => {
             // Folders first, then files
             const aIsFile = node[a].isFile;
@@ -480,16 +718,40 @@ class EmbedPreview {
         
         sortedKeys.forEach(key => {
             const item = node[key];
+            const fullPath = parentPath ? `${parentPath}/${item.name}` : item.name;
             const itemElement = document.createElement('div');
             
-            // Add highlighting class if the file is marked
+            // Check if file or folder is selected
+            const contextPath = item.isFile ? fullPath : fullPath + '/';
+            const isSelected = this.selectedFiles.has(contextPath);
+            
+            // Add highlighting class if the file is marked or selected
             if (item.isHighlighted) {
+                itemElement.className = 'flex items-center gap-1 py-0.5 px-1.5 bg-dynamic-primary/20 rounded text-xs text-dynamic-foreground font-medium transition-all';
+            } else if (isSelected) {
                 itemElement.className = 'flex items-center gap-1 py-0.5 px-1.5 bg-dynamic-primary/20 rounded cursor-pointer text-xs text-dynamic-foreground font-medium transition-all hover:bg-dynamic-primary/30';
             } else {
                 itemElement.className = 'flex items-center gap-1 py-0.5 px-1.5 hover:bg-dynamic-primary/10 rounded cursor-pointer text-xs text-dynamic-foreground/80 hover:text-dynamic-foreground transition-colors';
             }
             
             itemElement.style.paddingLeft = `${level * 12 + 6}px`;
+            
+            // Add click handler for files and folders (but not starred items)
+            if (!item.isHighlighted) {
+                itemElement.addEventListener('click', () => {
+                    const contextPath = item.isFile ? fullPath : fullPath + '/';
+                    if (isSelected) {
+                        this.removeFileFromContext(contextPath);
+                    } else {
+                        this.addFileToContext(contextPath);
+                    }
+                });
+                itemElement.title = isSelected ? 'Click to remove from context' : 'Click to add to context';
+                itemElement.style.cursor = 'pointer';
+            } else {
+                itemElement.style.cursor = 'default';
+                itemElement.title = 'Starred items cannot be selected';
+            }
             
             // Add icon
             const icon = document.createElement('span');
@@ -500,8 +762,8 @@ class EmbedPreview {
                 const ext = key.split('.').pop().toLowerCase();
                 let iconColor = 'text-dynamic-muted-foreground';
                 
-                // If highlighted, use primary color for icon
-                if (item.isHighlighted) {
+                // If highlighted or selected, use primary color for icon
+                if (item.isHighlighted || isSelected) {
                     iconColor = 'text-dynamic-primary';
                 } else {
                     // Color code common file types
@@ -536,19 +798,35 @@ class EmbedPreview {
             itemElement.appendChild(icon);
             itemElement.appendChild(nameSpan);
             
-            // Add a star indicator for highlighted files
-            if (item.isHighlighted) {
-                const starIcon = document.createElement('span');
-                starIcon.className = 'ml-auto text-dynamic-primary';
-                starIcon.innerHTML = '<svg class="w-2.5 h-2.5" viewBox="0 0 20 20" fill="currentColor"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>';
-                itemElement.appendChild(starIcon);
+            // Add indicators for highlighted or selected items
+            if (item.isHighlighted || isSelected) {
+                const indicatorContainer = document.createElement('span');
+                indicatorContainer.className = 'ml-auto flex items-center gap-1';
+                
+                // Add star for highlighted items
+                if (item.isHighlighted) {
+                    const starIcon = document.createElement('span');
+                    starIcon.className = 'text-dynamic-primary';
+                    starIcon.innerHTML = '<svg class="w-2.5 h-2.5" viewBox="0 0 20 20" fill="currentColor"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>';
+                    indicatorContainer.appendChild(starIcon);
+                }
+                
+                // Add checkmark for selected items (not highlighted)
+                if (isSelected && !item.isHighlighted) {
+                    const checkIcon = document.createElement('span');
+                    checkIcon.className = 'text-dynamic-primary';
+                    checkIcon.innerHTML = '<svg class="w-2.5 h-2.5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>';
+                    indicatorContainer.appendChild(checkIcon);
+                }
+                
+                itemElement.appendChild(indicatorContainer);
             }
             
             container.appendChild(itemElement);
             
             // Recursively render children
             if (!item.isFile && Object.keys(item.children).length > 0) {
-                this.renderTreeNode(item.children, container, level + 1);
+                this.renderTreeNode(item.children, container, level + 1, fullPath);
             }
         });
     }

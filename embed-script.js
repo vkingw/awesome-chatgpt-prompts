@@ -33,7 +33,13 @@ class EmbedDesigner {
                 darkColor: this.params.darkColor || savedConfig.darkColor || '#60a5fa',
                 height: this.params.height || savedConfig.height || '400',
                 themeMode: this.params.themeMode || savedConfig.themeMode || 'auto',
-                filetree: this.params.filetree ? decodeURIComponent(this.params.filetree).split('\n').filter(f => f.trim()) : (savedConfig.filetree || [])
+                filetree: this.params.filetree ? decodeURIComponent(this.params.filetree).split('\n').filter(f => f.trim()) : (savedConfig.filetree || []),
+                showFiletree: savedConfig.showFiletree !== undefined ? savedConfig.showFiletree : true,
+                showDiff: this.params.showDiff === 'true' || savedConfig.showDiff || false,
+                diffFilename: this.params.diffFilename || savedConfig.diffFilename || '',
+                diffOldText: this.params.diffOldText ? decodeURIComponent(this.params.diffOldText) : (savedConfig.diffOldText || ''),
+                diffNewText: this.params.diffNewText ? decodeURIComponent(this.params.diffNewText) : (savedConfig.diffNewText || ''),
+                flashButton: this.params.flashButton || savedConfig.flashButton || 'none'
             };
         }
         
@@ -55,7 +61,13 @@ class EmbedDesigner {
             darkColor: '#60a5fa',
             height: '400',
             themeMode: 'auto',
-            filetree: []
+            filetree: [],
+            showFiletree: true,
+            showDiff: false,
+            diffFilename: '',
+            diffOldText: '',
+            diffNewText: '',
+            flashButton: 'none'
         };
     }
     
@@ -78,7 +90,13 @@ class EmbedDesigner {
                         darkColor: config.darkColor || '#60a5fa',
                         height: config.height || '400',
                         themeMode: config.themeMode || 'auto',
-                        filetree: config.filetree || []
+                        filetree: config.filetree || [],
+                        showFiletree: config.showFiletree !== undefined ? config.showFiletree : true,
+                        showDiff: config.showDiff || false,
+                        diffFilename: config.diffFilename || '',
+                        diffOldText: config.diffOldText || '',
+                        diffNewText: config.diffNewText || '',
+                        flashButton: config.flashButton || 'none'
                     };
                 }
             }
@@ -141,6 +159,12 @@ class EmbedDesigner {
         document.getElementById('designer-thinking').checked = this.config.thinking;
         document.getElementById('designer-max').checked = this.config.max;
         
+        // Set show filetree checkbox (default to true if not set)
+        const showFiletreeCheckbox = document.getElementById('designer-show-filetree');
+        if (showFiletreeCheckbox) {
+            showFiletreeCheckbox.checked = this.config.showFiletree !== false;
+        }
+        
         // Set height slider
         const heightSlider = document.getElementById('designer-height');
         const heightValue = document.getElementById('height-value');
@@ -168,6 +192,27 @@ class EmbedDesigner {
             darkColorPicker.value = this.config.darkColor;
             darkColorText.value = this.config.darkColor;
         }
+        
+        // Set up diff view
+        const showDiffCheckbox = document.getElementById('designer-show-diff');
+        const diffFields = document.getElementById('diff-fields');
+        if (showDiffCheckbox) {
+            showDiffCheckbox.checked = this.config.showDiff || false;
+            if (diffFields) {
+                diffFields.classList.toggle('hidden', !this.config.showDiff);
+            }
+        }
+        
+        // Set diff field values
+        const diffFilename = document.getElementById('designer-diff-filename');
+        const diffOldText = document.getElementById('designer-diff-old');
+        const diffNewText = document.getElementById('designer-diff-new');
+        const flashButton = document.getElementById('designer-flash-button');
+        
+        if (diffFilename) diffFilename.value = this.config.diffFilename || '';
+        if (diffOldText) diffOldText.value = this.config.diffOldText || '';
+        if (diffNewText) diffNewText.value = this.config.diffNewText || '';
+        if (flashButton) flashButton.value = this.config.flashButton || 'none';
     }
     
     updateThemeModeButtons() {
@@ -186,11 +231,25 @@ class EmbedDesigner {
     
     setupDesignerEvents() {
         // Form changes update preview
-        ['designer-prompt', 'designer-context', 'designer-mode-select', 'designer-thinking', 'designer-max', 'designer-filetree'].forEach(id => {
+        ['designer-prompt', 'designer-context', 'designer-mode-select', 'designer-thinking', 'designer-max', 'designer-filetree', 'designer-show-filetree', 'designer-diff-filename', 'designer-diff-old', 'designer-diff-new', 'designer-flash-button'].forEach(id => {
             const element = document.getElementById(id);
-            element.addEventListener('input', () => this.updateConfigFromForm());
-            element.addEventListener('change', () => this.updateConfigFromForm());
+            if (element) {
+                element.addEventListener('input', () => this.updateConfigFromForm());
+                element.addEventListener('change', () => this.updateConfigFromForm());
+            }
         });
+        
+        // Diff view toggle
+        const showDiffCheckbox = document.getElementById('designer-show-diff');
+        const diffFields = document.getElementById('diff-fields');
+        if (showDiffCheckbox) {
+            showDiffCheckbox.addEventListener('change', (e) => {
+                if (diffFields) {
+                    diffFields.classList.toggle('hidden', !e.target.checked);
+                }
+                this.updateConfigFromForm();
+            });
+        }
         
         // Theme mode buttons
         document.querySelectorAll('.theme-mode-btn').forEach(btn => {
@@ -317,7 +376,12 @@ class EmbedDesigner {
                     darkColor: '#60a5fa',
                     height: '400',
                     themeMode: 'auto',
-                    filetree: []
+                    filetree: [],
+                    showFiletree: true,
+                    showDiff: false,
+                    diffFilename: '',
+                    diffOldText: '',
+                    diffNewText: ''
                 };
                 // Update UI to reflect defaults
                 this.setupDesignerElements();
@@ -326,10 +390,37 @@ class EmbedDesigner {
             }
         });
         
-        // Load example button
-        document.getElementById('load-example').addEventListener('click', () => {
-            this.loadExample();
-        });
+        // Example select
+        const exampleSelect = document.getElementById('example-select');
+        if (exampleSelect) {
+            exampleSelect.addEventListener('change', (e) => {
+                const example = e.target.value;
+                if (example) {
+                    switch (example) {
+                        case 'vibe-coding':
+                            this.loadVibeCodingExample();
+                            break;
+                        case 'vibe-coding-diff':
+                            this.loadVibeCodingDiffExample();
+                            break;
+                        case 'chatgpt':
+                            this.loadChatGPTExample();
+                            break;
+                        case 'claude':
+                            this.loadClaudeExample();
+                            break;
+                        case 'image-analysis':
+                            this.loadImageAnalysisExample();
+                            break;
+                        case 'api-design':
+                            this.loadAPIDesignExample();
+                            break;
+                    }
+                    // Reset select to placeholder after loading
+                    exampleSelect.value = '';
+                }
+            });
+        }
         
         // Modal events
         document.getElementById('close-modal').addEventListener('click', () => this.hideEmbedModal());
@@ -366,7 +457,13 @@ class EmbedDesigner {
             darkColor: darkColorText ? darkColorText.value : '#60a5fa',
             height: heightSlider ? heightSlider.value : '400',
             themeMode: this.config.themeMode || 'auto',
-            filetree: document.getElementById('designer-filetree').value.split('\n').map(f => f.trim()).filter(f => f)
+            filetree: document.getElementById('designer-filetree').value.split('\n').map(f => f.trim()).filter(f => f),
+            showFiletree: document.getElementById('designer-show-filetree').checked,
+            showDiff: document.getElementById('designer-show-diff').checked,
+            diffFilename: document.getElementById('designer-diff-filename').value,
+            diffOldText: document.getElementById('designer-diff-old').value,
+            diffNewText: document.getElementById('designer-diff-new').value,
+            flashButton: document.getElementById('designer-flash-button').value
         };
         
         this.updatePreview();
@@ -439,7 +536,21 @@ class EmbedDesigner {
         if (this.config.lightColor !== '#3b82f6') params.set('lightColor', this.config.lightColor);
         if (this.config.darkColor !== '#60a5fa') params.set('darkColor', this.config.darkColor);
         if (this.config.themeMode !== 'auto') params.set('themeMode', this.config.themeMode);
-        if (this.config.filetree && this.config.filetree.length > 0) params.set('filetree', encodeURIComponent(this.config.filetree.join('\n')));
+        if (this.config.showFiletree && this.config.filetree && this.config.filetree.length > 0) params.set('filetree', encodeURIComponent(this.config.filetree.join('\n')));
+        if (this.config.showDiff) {
+            params.set('showDiff', 'true');
+            if (this.config.diffFilename) params.set('diffFilename', this.config.diffFilename);
+            if (this.config.flashButton && this.config.flashButton !== 'none') params.set('flashButton', this.config.flashButton);
+            // Truncate diff text if too long to prevent URL length issues
+            if (this.config.diffOldText) {
+                const truncated = this.config.diffOldText.substring(0, 100);
+                params.set('diffOldText', encodeURIComponent(truncated)+'...');
+            }
+            if (this.config.diffNewText) {
+                const truncated = this.config.diffNewText.substring(0, 100);
+                params.set('diffNewText', encodeURIComponent(truncated)+'...');
+            }
+        }
         params.set('preview', 'true');
         
         return `/embed-preview/?${params.toString()}`;
@@ -456,7 +567,21 @@ class EmbedDesigner {
         if (this.config.lightColor !== '#3b82f6') params.set('lightColor', this.config.lightColor);
         if (this.config.darkColor !== '#60a5fa') params.set('darkColor', this.config.darkColor);
         if (this.config.themeMode !== 'auto') params.set('themeMode', this.config.themeMode);
-        if (this.config.filetree && this.config.filetree.length > 0) params.set('filetree', encodeURIComponent(this.config.filetree.join('\n')));
+        if (this.config.showFiletree && this.config.filetree && this.config.filetree.length > 0) params.set('filetree', encodeURIComponent(this.config.filetree.join('\n')));
+        if (this.config.showDiff) {
+            params.set('showDiff', 'true');
+            if (this.config.diffFilename) params.set('diffFilename', this.config.diffFilename);
+            if (this.config.flashButton && this.config.flashButton !== 'none') params.set('flashButton', this.config.flashButton);
+            // Truncate diff text if too long to prevent URL length issues
+            if (this.config.diffOldText) {
+                const truncated = this.config.diffOldText.substring(0, 150);
+                params.set('diffOldText', encodeURIComponent(truncated));
+            }
+            if (this.config.diffNewText) {
+                const truncated = this.config.diffNewText.substring(0, 150);
+                params.set('diffNewText', encodeURIComponent(truncated));
+            }
+        }
         
         return `${window.location.origin}/embed-preview/?${params.toString()}`;
     }
@@ -537,42 +662,337 @@ class EmbedDesigner {
         }, duration);
     }
     
-    loadExample() {
-        // Set example values
+    loadVibeCodingExample() {
+        // Vibe coding example WITHOUT diff
+        // Set vibe coding example values
         document.getElementById('designer-prompt').value = 
-`You are a senior React developer. I need help building a modern e-commerce product listing component.
+`Refactor my React ProductList component:
+- Extract filtering logic to custom hook
+- Split into smaller components  
+- Add TypeScript types
+- Implement virtualization
 
-Requirements:
-- Use React hooks and functional components
-- Implement product filtering by category and price range
-- Add smooth animations for product cards
-- Make it fully responsive with a grid layout
-- Include loading states and error handling
+Currently handles display, filtering, sorting, and pagination in one file.
 
-The component should fetch data from a REST API and display products with images, titles, prices, and ratings. Please provide clean, well-commented code following React best practices.`;
+@web Check React Query docs for data fetching patterns.`;
         
-        document.getElementById('designer-context').value = '@codebase, ProductList.jsx';
+        document.getElementById('designer-context').value = '@codebase, ProductList.tsx';
         document.getElementById('designer-filetree').value = 
-`src/components/ProductList.jsx*
-src/components/ProductCard.jsx
-src/components/Filters.jsx
-src/hooks/useProducts.js
-src/api/products.js
-src/styles/products.css
-src/utils/formatters.js
-public/index.html
-package.json
-README.md`;
+`src/components/ProductList.tsx*
+src/components/ProductCard.tsx
+src/hooks/useProducts.ts
+src/types/product.ts`;
         
-        // Set some example settings
-        document.getElementById('designer-model').value = 'Claude 3.7 Sonnet';
+        // Set vibe coding settings
+        document.getElementById('designer-model').value = 'Claude 4 Opus';
         document.getElementById('designer-mode-select').value = 'agent';
         document.getElementById('designer-thinking').checked = true;
+        document.getElementById('designer-max').checked = true;
+        document.getElementById('designer-show-filetree').checked = true;
+        
+        // Set height and colors for coding example
+        const heightSlider = document.getElementById('designer-height');
+        const heightValue = document.getElementById('height-value');
+        if (heightSlider) {
+            heightSlider.value = '500';
+            if (heightValue) {
+                heightValue.textContent = '500';
+            }
+        }
+        
+        // Set developer-friendly color scheme (purple/violet)
+        document.getElementById('designer-light-color').value = '#8b5cf6';
+        document.getElementById('designer-light-color-text').value = '#8b5cf6';
+        document.getElementById('designer-dark-color').value = '#a78bfa';
+        document.getElementById('designer-dark-color-text').value = '#a78bfa';
+        
+        // Set dark theme mode for coding
+        this.config.themeMode = 'dark';
+        this.updateThemeModeButtons();
+        
+        // No diff for this example
+        document.getElementById('designer-show-diff').checked = false;
+        document.getElementById('diff-fields').classList.add('hidden');
+        document.getElementById('designer-flash-button').value = 'none';
         
         // Update config from form
         this.updateConfigFromForm();
         
-        this.showNotification('Example loaded!');
+        this.showNotification('Vibe coding example loaded!');
+    }
+    
+    loadVibeCodingDiffExample() {
+        // Vibe coding WITH diff - user giving feedback on suggested changes
+        document.getElementById('designer-prompt').value = 
+`Actually, don't use Error | null for the error state. Instead:
+- Create a custom ApiError type with code, message, and retry()
+- Add an AbortController for request cancellation
+- Include error boundary integration
+- Show me how to handle network vs API errors differently
+
+Also add a refetch function that the UI can call.`;
+        
+        document.getElementById('designer-context').value = '@codebase, useProducts.ts';
+        document.getElementById('designer-filetree').value = 
+`src/hooks/useProducts.ts*
+src/types/errors.ts
+src/utils/api.ts`;
+        
+        // Set same settings as regular vibe coding
+        document.getElementById('designer-model').value = 'Claude 4 Opus';
+        document.getElementById('designer-mode-select').value = 'agent';
+        document.getElementById('designer-thinking').checked = true;
+        document.getElementById('designer-max').checked = true;
+        document.getElementById('designer-show-filetree').checked = true;
+        
+        // Set height and colors
+        const heightSlider = document.getElementById('designer-height');
+        const heightValue = document.getElementById('height-value');
+        if (heightSlider) {
+            heightSlider.value = '500';
+            if (heightValue) {
+                heightValue.textContent = '500';
+            }
+        }
+        
+        document.getElementById('designer-light-color').value = '#8b5cf6';
+        document.getElementById('designer-light-color-text').value = '#8b5cf6';
+        document.getElementById('designer-dark-color').value = '#a78bfa';
+        document.getElementById('designer-dark-color-text').value = '#a78bfa';
+        
+        this.config.themeMode = 'dark';
+        this.updateThemeModeButtons();
+        
+        // Add diff view showing the previous suggestion
+        document.getElementById('designer-show-diff').checked = true;
+        document.getElementById('diff-fields').classList.remove('hidden');
+        document.getElementById('designer-diff-filename').value = 'useProducts.ts';
+        document.getElementById('designer-diff-old').value = 
+`const [products, setProducts] = useState([]);
+const [loading, setLoading] = useState(true);`;
+        document.getElementById('designer-diff-new').value = 
+`const [products, setProducts] = useState<Product[]>([]);
+const [loading, setLoading] = useState(true);
+const [error, setError] = useState<Error | null>(null);`;
+        
+        // Flash accept button for this example with diff
+        document.getElementById('designer-flash-button').value = 'accept';
+        
+        // Update config from form
+        this.updateConfigFromForm();
+        
+        this.showNotification('Vibe coding with diff loaded!');
+    }
+    
+    loadChatGPTExample() {
+        // ChatGPT example with green colors
+        document.getElementById('designer-prompt').value = 
+`I'm planning a dinner party for 8 people this weekend. One person is vegetarian, another is gluten-free, and I want to make something impressive but not too complicated. 
+
+Can you suggest a menu with appetizers, main course, and dessert that would work for everyone? I have about 4 hours to prepare everything and a moderate cooking skill level.`;
+        
+        document.getElementById('designer-context').value = '#Kitchen Layout.png, #Pantry Inventory.jpg';
+        document.getElementById('designer-filetree').value = '';
+        
+        // ChatGPT settings
+        document.getElementById('designer-model').value = 'GPT 4o';
+        document.getElementById('designer-mode-select').value = 'chat';
+        document.getElementById('designer-thinking').checked = false;
+        document.getElementById('designer-max').checked = false;
+        document.getElementById('designer-show-filetree').checked = false;
+        
+        // Set height and colors for ChatGPT
+        const heightSlider = document.getElementById('designer-height');
+        const heightValue = document.getElementById('height-value');
+        if (heightSlider) {
+            heightSlider.value = '350';
+            if (heightValue) {
+                heightValue.textContent = '350';
+            }
+        }
+        
+        // ChatGPT green color scheme
+        document.getElementById('designer-light-color').value = '#10b981';
+        document.getElementById('designer-light-color-text').value = '#10b981';
+        document.getElementById('designer-dark-color').value = '#34d399';
+        document.getElementById('designer-dark-color-text').value = '#34d399';
+        
+        // Light theme for ChatGPT
+        this.config.themeMode = 'light';
+        this.updateThemeModeButtons();
+        
+        // Clear diff view
+        document.getElementById('designer-show-diff').checked = false;
+        document.getElementById('diff-fields').classList.add('hidden');
+        document.getElementById('designer-flash-button').value = 'none';
+        
+        // Update config from form
+        this.updateConfigFromForm();
+        
+        this.showNotification('ChatGPT example loaded!');
+    }
+    
+    loadClaudeExample() {
+        // Claude example with orange colors - daily usage
+        document.getElementById('designer-prompt').value = 
+`Help me write a professional email to decline a job offer while keeping the door open for future opportunities. 
+
+Context:
+- Received offer from TechCorp as Senior Engineer
+- Great team and compensation, but role doesn't align with my career goals
+- Want to maintain good relationship with the hiring manager Sarah
+- Interested in their upcoming ML team expansion next year
+
+Keep it warm but professional, around 150-200 words.`;
+        
+        document.getElementById('designer-context').value = '';
+        document.getElementById('designer-filetree').value = '';
+        
+        // Claude settings
+        document.getElementById('designer-model').value = 'Claude 3.7 Sonnet';
+        document.getElementById('designer-mode-select').value = 'chat';
+        document.getElementById('designer-thinking').checked = false;
+        document.getElementById('designer-max').checked = false;
+        document.getElementById('designer-show-filetree').checked = false;
+        
+        // Set height and colors for Claude
+        const heightSlider = document.getElementById('designer-height');
+        const heightValue = document.getElementById('height-value');
+        if (heightSlider) {
+            heightSlider.value = '350';
+            if (heightValue) {
+                heightValue.textContent = '350';
+            }
+        }
+        
+        // Claude orange color scheme
+        document.getElementById('designer-light-color').value = '#f97316';
+        document.getElementById('designer-light-color-text').value = '#f97316';
+        document.getElementById('designer-dark-color').value = '#fb923c';
+        document.getElementById('designer-dark-color-text').value = '#fb923c';
+        
+        // Auto theme for Claude
+        this.config.themeMode = 'auto';
+        this.updateThemeModeButtons();
+        
+        // Clear diff view
+        document.getElementById('designer-show-diff').checked = false;
+        document.getElementById('diff-fields').classList.add('hidden');
+        document.getElementById('designer-flash-button').value = 'none';
+        
+        // Update config from form
+        this.updateConfigFromForm();
+        
+        this.showNotification('Claude example loaded!');
+    }
+    
+    loadImageAnalysisExample() {
+        // Image analysis example
+        document.getElementById('designer-prompt').value = 
+`Analyze these UI screenshots and provide detailed feedback on:
+- Visual hierarchy and layout
+- Color scheme and contrast
+- Typography choices
+- Accessibility concerns
+- Mobile responsiveness issues`;
+        
+        document.getElementById('designer-context').value = '#Homepage Desktop.png, #Homepage Mobile.png, #Dashboard View.jpg';
+        document.getElementById('designer-filetree').value = '';
+        
+        // Image analysis settings
+        document.getElementById('designer-model').value = 'GPT 4.1';
+        document.getElementById('designer-mode-select').value = 'chat';
+        document.getElementById('designer-thinking').checked = false;
+        document.getElementById('designer-max').checked = false;
+        document.getElementById('designer-show-filetree').checked = false;
+        
+        // Set height and colors
+        const heightSlider = document.getElementById('designer-height');
+        const heightValue = document.getElementById('height-value');
+        if (heightSlider) {
+            heightSlider.value = '400';
+            if (heightValue) {
+                heightValue.textContent = '400';
+            }
+        }
+        
+        // Pink/purple color scheme for design
+        document.getElementById('designer-light-color').value = '#ec4899';
+        document.getElementById('designer-light-color-text').value = '#ec4899';
+        document.getElementById('designer-dark-color').value = '#f472b6';
+        document.getElementById('designer-dark-color-text').value = '#f472b6';
+        
+        // Light theme
+        this.config.themeMode = 'light';
+        this.updateThemeModeButtons();
+        
+        // Clear diff view
+        document.getElementById('designer-show-diff').checked = false;
+        document.getElementById('diff-fields').classList.add('hidden');
+        document.getElementById('designer-flash-button').value = 'none';
+        
+        // Update config from form
+        this.updateConfigFromForm();
+        
+        this.showNotification('Image analysis example loaded!');
+    }
+    
+    loadAPIDesignExample() {
+        // API design example
+        document.getElementById('designer-prompt').value = 
+`Design a RESTful API for a task management system with:
+- User authentication
+- Project and task CRUD operations
+- Team collaboration features
+- Real-time notifications
+
+Include endpoint definitions, request/response schemas, and error handling patterns.`;
+        
+        document.getElementById('designer-context').value = '@Web, openapi.yaml';
+        document.getElementById('designer-filetree').value = 
+`api/
+api/v1/
+api/v1/users/
+api/v1/projects/
+api/v1/tasks/
+docs/openapi.yaml*`;
+        
+        // API design settings
+        document.getElementById('designer-model').value = 'Claude 4 Opus';
+        document.getElementById('designer-mode-select').value = 'manual';
+        document.getElementById('designer-thinking').checked = true;
+        document.getElementById('designer-max').checked = false;
+        document.getElementById('designer-show-filetree').checked = true;
+        
+        // Set height and colors
+        const heightSlider = document.getElementById('designer-height');
+        const heightValue = document.getElementById('height-value');
+        if (heightSlider) {
+            heightSlider.value = '500';
+            if (heightValue) {
+                heightValue.textContent = '500';
+            }
+        }
+        
+        // Blue color scheme for API
+        document.getElementById('designer-light-color').value = '#3b82f6';
+        document.getElementById('designer-light-color-text').value = '#3b82f6';
+        document.getElementById('designer-dark-color').value = '#60a5fa';
+        document.getElementById('designer-dark-color-text').value = '#60a5fa';
+        
+        // Dark theme for technical
+        this.config.themeMode = 'dark';
+        this.updateThemeModeButtons();
+        
+        // Clear diff view
+        document.getElementById('designer-show-diff').checked = false;
+        document.getElementById('diff-fields').classList.add('hidden');
+        document.getElementById('designer-flash-button').value = 'none';
+        
+        // Update config from form
+        this.updateConfigFromForm();
+        
+        this.showNotification('API design example loaded!');
     }
 }
 
