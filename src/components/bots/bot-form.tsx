@@ -22,20 +22,31 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
+import { BotPlatformIcon } from "@/components/bots/bot-platform-icon";
+import { BotAppearancePicker } from "@/components/bots/bot-appearance-picker";
 import {
+  BOT_COLORS,
+  BOT_ICONS,
   BOT_PLATFORMS,
   BOT_PLATFORM_INFO,
   botRoutineSchema,
   botSkillSchema,
+  normalizeBotPlatforms,
+  type BotColor,
   type BotConfig,
+  type BotIconName,
   type BotPlatform,
 } from "@/lib/bots/schema";
 import { getBotUrl } from "@/lib/urls";
+import { cn } from "@/lib/utils";
 
 const botFormSchema = z.object({
   title: z.string().trim().min(1).max(200),
   description: z.string().trim().max(500),
-  botPlatform: z.enum(BOT_PLATFORMS),
+  botPlatforms: z.array(z.enum(BOT_PLATFORMS)).min(1),
+  botIcon: z.union([z.literal(""), z.enum(BOT_ICONS)]),
+  botColor: z.union([z.literal(""), z.enum(BOT_COLORS)]),
   installUrl: z
     .string()
     .trim()
@@ -52,7 +63,9 @@ type BotFormValues = z.infer<typeof botFormSchema>;
 export interface BotFormInitialData {
   title: string;
   description: string;
-  botPlatform: BotPlatform;
+  botPlatforms: BotPlatform[];
+  botIcon: BotIconName | null;
+  botColor: BotColor | null;
   installUrl: string;
   content: string;
   isPrivate: boolean;
@@ -81,7 +94,9 @@ export function BotForm({ mode, botId, initialData }: BotFormProps) {
     defaultValues: {
       title: initialData?.title ?? "",
       description: initialData?.description ?? "",
-      botPlatform: initialData?.botPlatform ?? "OPENCLAW",
+      botPlatforms: initialData?.botPlatforms ?? [],
+      botIcon: initialData?.botIcon ?? "",
+      botColor: initialData?.botColor ?? "",
       installUrl: initialData?.installUrl ?? "",
       content: initialData?.content ?? "",
       isPrivate: initialData?.isPrivate ?? false,
@@ -103,7 +118,9 @@ export function BotForm({ mode, botId, initialData }: BotFormProps) {
         description: data.description,
         content: data.content,
         isPrivate: data.isPrivate,
-        botPlatform: data.botPlatform,
+        botPlatforms: data.botPlatforms,
+        botIcon: data.botIcon || null,
+        botColor: data.botColor || null,
         installUrl: data.installUrl,
         botConfig: {
           routines: data.routines,
@@ -162,6 +179,15 @@ export function BotForm({ mode, botId, initialData }: BotFormProps) {
 
         <div className="space-y-4 pb-6 border-b">
           <div className="flex flex-col sm:flex-row sm:items-start gap-4">
+            <div className="space-y-2">
+              <p className="text-sm font-medium leading-none">{t("form.appearance")}</p>
+              <BotAppearancePicker
+                icon={form.watch("botIcon")}
+                color={form.watch("botColor")}
+                onIconChange={(icon) => form.setValue("botIcon", icon as BotFormValues["botIcon"], { shouldDirty: true })}
+                onColorChange={(color) => form.setValue("botColor", color as BotFormValues["botColor"], { shouldDirty: true })}
+              />
+            </div>
             <FormField
               control={form.control}
               name="title"
@@ -175,31 +201,52 @@ export function BotForm({ mode, botId, initialData }: BotFormProps) {
                 </FormItem>
               )}
             />
-            <FormField
-              control={form.control}
-              name="botPlatform"
-              render={({ field }) => (
-                <FormItem className="w-full sm:w-48">
-                  <FormLabel>{t("form.platform")}</FormLabel>
-                  <Select value={field.value} onValueChange={field.onChange}>
-                    <FormControl>
-                      <SelectTrigger className="w-full">
-                        <SelectValue />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {BOT_PLATFORMS.map((platform) => (
-                        <SelectItem key={platform} value={platform}>
-                          {BOT_PLATFORM_INFO[platform].name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
           </div>
+
+          <FormField
+            control={form.control}
+            name="botPlatforms"
+            render={({ field, fieldState }) => (
+              <FormItem>
+                <p
+                  id="bot-platforms-label"
+                  className={cn("text-sm font-medium leading-none", fieldState.error && "text-destructive")}
+                >
+                  {t("form.platforms")}
+                </p>
+                <FormDescription>{t("form.platformsHint")}</FormDescription>
+                <div role="group" aria-labelledby="bot-platforms-label" className="flex flex-wrap gap-2">
+                  {BOT_PLATFORMS.map((platform) => {
+                    const checked = field.value.includes(platform);
+                    return (
+                      <label
+                        key={platform}
+                        className={cn(
+                          "flex cursor-pointer items-center gap-2 rounded-md border px-3 py-2 text-sm transition-colors hover:bg-accent/50",
+                          checked && "border-primary bg-primary/5"
+                        )}
+                      >
+                        <Checkbox
+                          checked={checked}
+                          onCheckedChange={(value) =>
+                            field.onChange(
+                              value
+                                ? normalizeBotPlatforms([...field.value, platform])
+                                : field.value.filter((p) => p !== platform)
+                            )
+                          }
+                          onBlur={field.onBlur}
+                        />
+                        <BotPlatformIcon platform={platform} />
+                        {BOT_PLATFORM_INFO[platform].name}
+                      </label>
+                    );
+                  })}
+                </div>
+                {fieldState.error && <p className="text-destructive text-sm">{t("form.platformsRequired")}</p>}
+              </FormItem>
+            )}
+          />
 
           <FormField
             control={form.control}

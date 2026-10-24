@@ -20,8 +20,9 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { BotAvatar } from "@/components/bots/bot-avatar";
 import { BotPlatformBadge } from "@/components/bots/bot-platform-badge";
-import type { BotPlatform } from "@/lib/bots/schema";
+import { resolveBotPlatforms, type BotPlatform } from "@/lib/bots/schema";
 import { getBotUrl } from "@/lib/urls";
 
 interface AdminBot {
@@ -29,6 +30,9 @@ interface AdminBot {
   title: string;
   slug: string | null;
   botPlatform: BotPlatform | null;
+  botPlatforms: BotPlatform[];
+  botIcon: string | null;
+  botColor: string | null;
   isPrivate: boolean;
   isUnlisted: boolean;
   isFeatured: boolean;
@@ -156,10 +160,13 @@ export function BotsManagement() {
             return (
               <div key={bot.id} className="rounded-lg border bg-card p-4 space-y-3">
                 <div className="flex items-start justify-between gap-3">
+                  <BotAvatar icon={bot.botIcon} color={bot.botColor} size="sm" />
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
                       <h4 className="font-medium truncate">{bot.title}</h4>
-                      {bot.botPlatform && <BotPlatformBadge platform={bot.botPlatform} />}
+                      {resolveBotPlatforms(bot).map((platform) => (
+                        <BotPlatformBadge key={platform} platform={platform} />
+                      ))}
                       {bot.isFeatured && <Star className="h-4 w-4 text-yellow-500 fill-yellow-500 flex-shrink-0" />}
                       {bot.isPrivate && (
                         <Badge variant="secondary" className="text-xs">

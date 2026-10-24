@@ -39,7 +39,9 @@ export default async function EditBotPage({ params }: EditBotPageProps) {
         initialData={{
           title: bot.title,
           description: bot.description ?? "",
-          botPlatform: bot.platform,
+          botPlatforms: bot.platforms,
+          botIcon: bot.icon,
+          botColor: bot.color,
           installUrl: bot.installUrl ?? "",
           content: bot.instructions,
           isPrivate: bot.isPrivate,

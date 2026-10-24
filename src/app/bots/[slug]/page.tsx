@@ -7,17 +7,11 @@ import { auth } from "@/lib/auth";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { BotAvatar } from "@/components/bots/bot-avatar";
 import { BotInstall } from "@/components/bots/bot-install";
 import { BotPlatformBadge } from "@/components/bots/bot-platform-badge";
 import { JsonLd, breadcrumbSchema } from "@/components/seo/structured-data";
-import {
-  BOT_PLATFORM_INFO,
-  extractBotId,
-  getBotById,
-  getBotUrls,
-  getHermesInstallCommand,
-  getInstallPrompt,
-} from "@/lib/bots";
+import { extractBotId, formatBotPlatforms, getBotById, getBotInstallOptions, getBotUrls } from "@/lib/bots";
 import { canViewPrompt } from "@/lib/prompt-access";
 import { buildPageMetadata, getBaseUrl, NOINDEX_ROBOTS, toMetaDescription } from "@/lib/seo";
 import { getBotUrl } from "@/lib/urls";
@@ -33,7 +27,7 @@ export async function generateMetadata({ params }: BotPageProps): Promise<Metada
     return { robots: NOINDEX_ROBOTS };
   }
   return buildPageMetadata({
-    title: `${bot.title} · ${BOT_PLATFORM_INFO[bot.platform].name}`,
+    title: `${bot.title} · ${formatBotPlatforms(bot.platforms)}`,
     description: toMetaDescription(bot.description || bot.instructions),
     path: getBotUrl(bot.id, bot.slug),
     noindex: bot.isUnlisted,
@@ -56,7 +50,6 @@ export default async function BotPage({ params }: BotPageProps) {
   const t = await getTranslations("bots");
   const tNav = await getTranslations("nav");
   const baseUrl = getBaseUrl();
-  const platformName = BOT_PLATFORM_INFO[bot.platform].name;
   const canEdit = session?.user?.id === bot.authorId || session?.user?.role === "ADMIN";
   const { routines, skills, connectors } = bot.config;
 
@@ -86,14 +79,19 @@ export default async function BotPage({ params }: BotPageProps) {
 
       <div className="mb-6 space-y-3">
         <div className="flex flex-wrap items-center gap-2">
-          <BotPlatformBadge platform={bot.platform} />
+          {bot.platforms.map((platform) => (
+            <BotPlatformBadge key={platform} platform={platform} />
+          ))}
           {bot.isFeatured && <Star className="h-4 w-4 text-yellow-500 fill-yellow-500" />}
           {bot.isPrivate && (
             <Badge variant="secondary"><EyeOff />{t("private")}</Badge>
           )}
           {bot.isUnlisted && <Badge variant="outline">{t("unlisted")}</Badge>}
         </div>
-        <h1 className="text-2xl font-semibold">{bot.title}</h1>
+        <div className="flex items-center gap-3">
+          <BotAvatar icon={bot.icon} color={bot.color} size="lg" />
+          <h1 className="text-2xl font-semibold">{bot.title}</h1>
+        </div>
         {bot.description && <p className="text-muted-foreground">{bot.description}</p>}
         <Link href={`/@${bot.author.username}`} className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground">
           <Avatar className="h-5 w-5">
@@ -182,14 +180,7 @@ export default async function BotPage({ params }: BotPageProps) {
 
         <aside className="lg:sticky lg:top-16 h-fit rounded-md border p-4 space-y-3">
           <h2 className="text-base font-semibold">{t("install")}</h2>
-          <BotInstall
-            platform={bot.platform}
-            platformName={platformName}
-            installUrl={bot.installUrl}
-            installPrompt={getInstallPrompt(bot, baseUrl)}
-            hermesCommand={bot.platform === "HERMES" ? getHermesInstallCommand(bot, baseUrl) : null}
-            urls={getBotUrls(bot, baseUrl)}
-          />
+          <BotInstall options={getBotInstallOptions(bot, baseUrl)} urls={getBotUrls(bot, baseUrl)} />
         </aside>
       </div>
     </div>
