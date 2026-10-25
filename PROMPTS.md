@@ -193527,3 +193527,16 @@ Subject: Cozy bedroom ASMR, Motion: Slow, gentle hand movements tracing textures
 
 </details>
 
+<details>
+<summary><strong>Cinematic Evolution of Cars from 1920s to Electric Vehicles</strong></summary>
+
+## Cinematic Evolution of Cars from 1920s to Electric Vehicles
+
+Contributed by @anonymous
+
+```md
+"Generate a video: Documentary style cinematic sequence showing the evolution of cars from vintage 1920s automobile to modern electric vehicle charging at sunset, photorealistic, dramatic lighting"
+```
+
+</details>
+
