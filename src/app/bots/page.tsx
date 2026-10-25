@@ -102,7 +102,7 @@ export default async function BotsPage({ searchParams }: BotsPageProps) {
       </nav>
 
       {bots.length > 0 ? (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {bots.map((bot, index) => (
             <BotCard key={bot.id} bot={bot} position={(page - 1) * PER_PAGE + index + 1} />
           ))}
