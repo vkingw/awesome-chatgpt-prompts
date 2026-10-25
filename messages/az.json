@@ -436,7 +436,8 @@
     "dismiss": "Ləğv et",
     "dismissed": "Dəyişiklik sorğusu ləğv edildi",
     "dismissConfirmTitle": "Dəyişiklik Sorğusu Ləğv Edilsin?",
-    "dismissConfirmDescription": "Bu, dəyişiklik sorğunuzu birdəfəlik siləcək. Bu əməliyyat geri alına bilməz."
+    "dismissConfirmDescription": "Bu, dəyişiklik sorğunuzu birdəfəlik siləcək. Bu əməliyyat geri alına bilməz.",
+    "backToBot": "Bota qayıt"
   },
   "categories": {
     "title": "Kateqoriyalar",
@@ -826,7 +827,12 @@
     "getVerified": "Təsdiqlənin",
     "examples": "Nümunələr",
     "noExamples": "Hələ heç bir nümunə paylaşılmayıb",
-    "noExamplesOwner": "Hələ heç bir nümunə paylaşmamısınız"
+    "noExamplesOwner": "Hələ heç bir nümunə paylaşmamısınız",
+    "bots": "Botlar",
+    "noBots": "Hələ bot yoxdur.",
+    "noBotsOwner": "Siz hələ heç bir bot yaratmamısınız.",
+    "createFirstBot": "İlk botunuzu yaradın",
+    "botsCount": "bot"
   },
   "subscription": {
     "subscribe": "Abunə ol",
@@ -2496,7 +2502,9 @@
     },
     "profile": {
       "title": "{name} (@{username}) - AI Promptları",
-      "description": "{name} (@{username}) tərəfindən pulsuz və açıq mənbəli prompt kitabxanası prompts.chat-da paylaşılan {count} AI promptuna baxın."
+      "description": "{name} (@{username}) tərəfindən pulsuz və açıq mənbəli prompt kitabxanası prompts.chat-da paylaşılan {count} AI promptuna baxın.",
+      "descriptionWithBots": "{name} (@{username}) tərəfindən pulsuz və açıq mənbəli prompt kitabxanası prompts.chat-da paylaşılan {count} AI promptuna və {botCount} AI botuna baxın.",
+      "descriptionBotsOnly": "{name} (@{username}) tərəfindən pulsuz və açıq mənbəli prompt kitabxanası prompts.chat-da paylaşılan {botCount} AI botuna baxın."
     },
     "bookChapter": {
       "title": "{chapter} - Prompt Mühəndisliyi Bələdçisi"

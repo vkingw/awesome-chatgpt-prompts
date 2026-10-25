@@ -436,7 +436,8 @@
     "dismiss": "Zurückziehen",
     "dismissed": "Änderungsanfrage zurückgezogen",
     "dismissConfirmTitle": "Änderungsanfrage zurückziehen?",
-    "dismissConfirmDescription": "Dies wird Ihre Änderungsanfrage dauerhaft löschen. Diese Aktion kann nicht rückgängig gemacht werden."
+    "dismissConfirmDescription": "Dies wird Ihre Änderungsanfrage dauerhaft löschen. Diese Aktion kann nicht rückgängig gemacht werden.",
+    "backToBot": "Zurück zum Bot"
   },
   "categories": {
     "title": "Kategorien",
@@ -826,7 +827,12 @@
     "getVerified": "Verifizieren lassen",
     "examples": "Beispiele",
     "noExamples": "Noch keine Beispiele geteilt",
-    "noExamplesOwner": "Du hast noch keine Beispiele geteilt"
+    "noExamplesOwner": "Du hast noch keine Beispiele geteilt",
+    "bots": "Bots",
+    "noBots": "Noch keine Bots.",
+    "noBotsOwner": "Du hast noch keine Bots erstellt.",
+    "createFirstBot": "Erstelle deinen ersten Bot",
+    "botsCount": "Bots"
   },
   "subscription": {
     "subscribe": "Abonnieren",
@@ -2496,7 +2502,9 @@
     },
     "profile": {
       "title": "{name} (@{username}) - KI-Prompts",
-      "description": "Entdecken Sie {count} KI-Prompts von {name} (@{username}) auf prompts.chat, der kostenlosen Open-Source-Bibliothek für Prompts."
+      "description": "Entdecken Sie {count} KI-Prompts von {name} (@{username}) auf prompts.chat, der kostenlosen Open-Source-Bibliothek für Prompts.",
+      "descriptionWithBots": "Entdecken Sie {count} KI-Prompts und {botCount, plural, one {# KI-Bot} other {# KI-Bots}} von {name} (@{username}) auf prompts.chat, der kostenlosen Open-Source-Bibliothek für Prompts.",
+      "descriptionBotsOnly": "Entdecken Sie {botCount, plural, one {# KI-Bot} other {# KI-Bots}} von {name} (@{username}) auf prompts.chat, der kostenlosen Open-Source-Bibliothek für Prompts."
     },
     "bookChapter": {
       "title": "{chapter} - Prompt-Engineering-Leitfaden"

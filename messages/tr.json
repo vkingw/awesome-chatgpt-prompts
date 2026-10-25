@@ -436,7 +436,8 @@
     "dismiss": "Geri Çek",
     "dismissed": "Değişiklik talebi geri çekildi",
     "dismissConfirmTitle": "Değişiklik Talebini Geri Çek?",
-    "dismissConfirmDescription": "Bu işlem değişiklik talebinizi kalıcı olarak silecektir. Bu işlem geri alınamaz."
+    "dismissConfirmDescription": "Bu işlem değişiklik talebinizi kalıcı olarak silecektir. Bu işlem geri alınamaz.",
+    "backToBot": "Bota dön"
   },
   "categories": {
     "title": "Kategoriler",
@@ -826,7 +827,12 @@
     "getVerified": "Doğrulanmış Ol",
     "examples": "Örnekler",
     "noExamples": "Henüz paylaşılan örnek yok",
-    "noExamplesOwner": "Henüz örnek paylaşmadınız"
+    "noExamplesOwner": "Henüz örnek paylaşmadınız",
+    "bots": "Botlar",
+    "noBots": "Henüz bot yok.",
+    "noBotsOwner": "Henüz hiç bot oluşturmadınız.",
+    "createFirstBot": "İlk botunuzu oluşturun",
+    "botsCount": "bot"
   },
   "subscription": {
     "subscribe": "Abone Ol",
@@ -2495,7 +2501,9 @@
     },
     "profile": {
       "title": "{name} (@{username}) - AI Promptları",
-      "description": "{name} (@{username}) tarafından ücretsiz ve açık kaynak prompt kütüphanesi prompts.chat'te paylaşılan {count} yapay zeka promptuna göz atın."
+      "description": "{name} (@{username}) tarafından ücretsiz ve açık kaynak prompt kütüphanesi prompts.chat'te paylaşılan {count} yapay zeka promptuna göz atın.",
+      "descriptionWithBots": "{name} (@{username}) tarafından ücretsiz ve açık kaynak prompt kütüphanesi prompts.chat'te paylaşılan {count} yapay zeka promptuna ve {botCount} yapay zeka botuna göz atın.",
+      "descriptionBotsOnly": "{name} (@{username}) tarafından ücretsiz ve açık kaynak prompt kütüphanesi prompts.chat'te paylaşılan {botCount} yapay zeka botuna göz atın."
     },
     "bookChapter": {
       "title": "{chapter} - Prompt Mühendisliği Rehberi"

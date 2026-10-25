@@ -36,6 +36,7 @@ export const botSelect = {
   createdAt: true,
   updatedAt: true,
   author: { select: { username: true, name: true, avatar: true, verified: true } },
+  _count: { select: { votes: true } },
 } satisfies Prisma.PromptSelect;
 
 type BotRecord = Prisma.PromptGetPayload<{ select: typeof botSelect }>;
@@ -61,6 +62,7 @@ export interface BotView {
   deletedAt: Date | null;
   authorId: string;
   author: BotRecord["author"];
+  voteCount: number;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -88,6 +90,7 @@ export function toBotView(record: BotRecord): BotView {
     deletedAt: record.deletedAt,
     authorId: record.authorId,
     author: record.author,
+    voteCount: record._count.votes,
     createdAt: record.createdAt,
     updatedAt: record.updatedAt,
   };
@@ -115,6 +118,19 @@ export async function listBots({
       take,
       select: botSelect,
     }),
+    db.prompt.count({ where }),
+  ]);
+  return { bots: records.map(toBotView), total };
+}
+
+/** A user's bots for their profile; private ones only for the owner */
+export async function listBotsByAuthor(
+  authorId: string,
+  { includePrivate = false, skip = 0, take = 24 }: { includePrivate?: boolean; skip?: number; take?: number } = {}
+): Promise<{ bots: BotView[]; total: number }> {
+  const where: Prisma.PromptWhereInput = { authorId, type: "BOT", deletedAt: null, ...(includePrivate ? {} : { isPrivate: false }) };
+  const [records, total] = await Promise.all([
+    db.prompt.findMany({ where, orderBy: { createdAt: "desc" }, skip, take, select: botSelect }),
     db.prompt.count({ where }),
   ]);
   return { bots: records.map(toBotView), total };

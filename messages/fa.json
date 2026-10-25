@@ -436,7 +436,8 @@
     "dismiss": "رد کردن",
     "dismissed": "درخواست تغییر رد شد",
     "dismissConfirmTitle": "درخواست تغییر رد شود؟",
-    "dismissConfirmDescription": "این کار درخواست تغییر شما را برای همیشه حذف می‌کند. این عمل قابل بازگشت نیست."
+    "dismissConfirmDescription": "این کار درخواست تغییر شما را برای همیشه حذف می‌کند. این عمل قابل بازگشت نیست.",
+    "backToBot": "بازگشت به بات"
   },
   "categories": {
     "title": "دسته‌بندی‌ها",
@@ -826,7 +827,12 @@
     "getVerified": "تأیید شوید",
     "examples": "نمونه‌ها",
     "noExamples": "هنوز نمونه‌ای به اشتراک گذاشته نشده",
-    "noExamplesOwner": "هنوز نمونه‌ای به اشتراک نگذاشته‌اید"
+    "noExamplesOwner": "هنوز نمونه‌ای به اشتراک نگذاشته‌اید",
+    "bots": "بات‌ها",
+    "noBots": "هنوز باتی وجود ندارد.",
+    "noBotsOwner": "هنوز هیچ باتی نساخته‌اید.",
+    "createFirstBot": "اولین بات خود را بسازید",
+    "botsCount": "بات"
   },
   "subscription": {
     "subscribe": "دنبال کردن",
@@ -2480,7 +2486,9 @@
     },
     "profile": {
       "title": "{name} (@{username}) - پرامپت‌های هوش مصنوعی",
-      "description": "{count} پرامپت هوش مصنوعی از {name} (@{username}) را در prompts.chat، کتابخانه رایگان و متن‌باز پرامپت، ببینید."
+      "description": "{count} پرامپت هوش مصنوعی از {name} (@{username}) را در prompts.chat، کتابخانه رایگان و متن‌باز پرامپت، ببینید.",
+      "descriptionWithBots": "{count} پرامپت و {botCount} بات هوش مصنوعی از {name} (@{username}) را در prompts.chat، کتابخانه رایگان و متن‌باز پرامپت، ببینید.",
+      "descriptionBotsOnly": "{botCount} بات هوش مصنوعی از {name} (@{username}) را در prompts.chat، کتابخانه رایگان و متن‌باز پرامپت، ببینید."
     },
     "bookChapter": {
       "title": "{chapter} - راهنمای مهندسی پرامپت"

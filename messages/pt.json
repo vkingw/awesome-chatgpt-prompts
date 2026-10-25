@@ -436,7 +436,8 @@
     "dismiss": "Retirar",
     "dismissed": "Solicitação de alteração retirada",
     "dismissConfirmTitle": "Retirar Solicitação de Alteração?",
-    "dismissConfirmDescription": "Isso excluirá permanentemente sua solicitação de alteração. Esta ação não pode ser desfeita."
+    "dismissConfirmDescription": "Isso excluirá permanentemente sua solicitação de alteração. Esta ação não pode ser desfeita.",
+    "backToBot": "Voltar ao bot"
   },
   "categories": {
     "title": "Categorias",
@@ -826,7 +827,12 @@
     "getVerified": "Obter Verificação",
     "examples": "Exemplos",
     "noExamples": "Nenhum exemplo compartilhado ainda",
-    "noExamplesOwner": "Você ainda não compartilhou nenhum exemplo"
+    "noExamplesOwner": "Você ainda não compartilhou nenhum exemplo",
+    "bots": "Bots",
+    "noBots": "Ainda não há bots.",
+    "noBotsOwner": "Você ainda não criou nenhum bot.",
+    "createFirstBot": "Crie seu primeiro bot",
+    "botsCount": "bots"
   },
   "subscription": {
     "subscribe": "Inscrever-se",
@@ -2498,7 +2504,9 @@
     },
     "profile": {
       "title": "{name} (@{username}) - Prompts de IA",
-      "description": "Veja {count} prompts de IA compartilhados por {name} (@{username}) no prompts.chat, a biblioteca de prompts gratuita e open source."
+      "description": "Veja {count} prompts de IA compartilhados por {name} (@{username}) no prompts.chat, a biblioteca de prompts gratuita e open source.",
+      "descriptionWithBots": "Veja {count} prompts de IA e {botCount, plural, one {# bot de IA} other {# bots de IA}} compartilhados por {name} (@{username}) no prompts.chat, a biblioteca de prompts gratuita e open source.",
+      "descriptionBotsOnly": "Veja {botCount, plural, one {# bot de IA} other {# bots de IA}} compartilhados por {name} (@{username}) no prompts.chat, a biblioteca de prompts gratuita e open source."
     },
     "bookChapter": {
       "title": "{chapter} - Guia de engenharia de prompts"

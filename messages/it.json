@@ -436,7 +436,8 @@
     "dismiss": "Elimina",
     "dismissed": "Richiesta di modifica eliminata",
     "dismissConfirmTitle": "Eliminare la Richiesta di Modifica?",
-    "dismissConfirmDescription": "Questo eliminerà permanentemente la tua richiesta di modifica. Questa azione non può essere annullata."
+    "dismissConfirmDescription": "Questo eliminerà permanentemente la tua richiesta di modifica. Questa azione non può essere annullata.",
+    "backToBot": "Torna al bot"
   },
   "categories": {
     "title": "Categorie",
@@ -826,7 +827,12 @@
     "getVerified": "Ottieni la Verifica",
     "examples": "Esempi",
     "noExamples": "Nessun esempio condiviso ancora",
-    "noExamplesOwner": "Non hai ancora condiviso nessun esempio"
+    "noExamplesOwner": "Non hai ancora condiviso nessun esempio",
+    "bots": "Bot",
+    "noBots": "Ancora nessun bot.",
+    "noBotsOwner": "Non hai ancora creato nessun bot.",
+    "createFirstBot": "Crea il tuo primo bot",
+    "botsCount": "bot"
   },
   "subscription": {
     "subscribe": "Iscriviti",
@@ -2502,7 +2508,9 @@
     },
     "profile": {
       "title": "{name} (@{username}) - Prompt AI",
-      "description": "Sfoglia {count} prompt AI condivisi da {name} (@{username}) su prompts.chat, la libreria di prompt gratuita e open source."
+      "description": "Sfoglia {count} prompt AI condivisi da {name} (@{username}) su prompts.chat, la libreria di prompt gratuita e open source.",
+      "descriptionWithBots": "Sfoglia {count} prompt AI e {botCount} bot AI condivisi da {name} (@{username}) su prompts.chat, la libreria di prompt gratuita e open source.",
+      "descriptionBotsOnly": "Sfoglia {botCount} bot AI condivisi da {name} (@{username}) su prompts.chat, la libreria di prompt gratuita e open source."
     },
     "bookChapter": {
       "title": "{chapter} - Guida all'ingegneria dei prompt"

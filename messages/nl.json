@@ -436,7 +436,8 @@
     "dismiss": "Afwijzen",
     "dismissed": "Wijzigingsverzoek afgewezen",
     "dismissConfirmTitle": "Wijzigingsverzoek afwijzen?",
-    "dismissConfirmDescription": "Dit zal je wijzigingsverzoek permanent verwijderen. Deze actie kan niet ongedaan worden gemaakt."
+    "dismissConfirmDescription": "Dit zal je wijzigingsverzoek permanent verwijderen. Deze actie kan niet ongedaan worden gemaakt.",
+    "backToBot": "Terug naar bot"
   },
   "categories": {
     "title": "Categorieën",
@@ -826,7 +827,12 @@
     "getVerified": "Word geverifieerd",
     "examples": "Voorbeelden",
     "noExamples": "Nog geen voorbeelden gedeeld",
-    "noExamplesOwner": "Je hebt nog geen voorbeelden gedeeld"
+    "noExamplesOwner": "Je hebt nog geen voorbeelden gedeeld",
+    "bots": "Bots",
+    "noBots": "Nog geen bots.",
+    "noBotsOwner": "Je hebt nog geen bots gemaakt.",
+    "createFirstBot": "Maak je eerste bot",
+    "botsCount": "bots"
   },
   "subscription": {
     "subscribe": "Abonneren",
@@ -2487,7 +2493,9 @@
     },
     "profile": {
       "title": "{name} (@{username}) - AI-prompts",
-      "description": "Bekijk {count} AI-prompts gedeeld door {name} (@{username}) op prompts.chat, de gratis open-source promptbibliotheek."
+      "description": "Bekijk {count} AI-prompts gedeeld door {name} (@{username}) op prompts.chat, de gratis open-source promptbibliotheek.",
+      "descriptionWithBots": "Bekijk {count} AI-prompts en {botCount, plural, one {# AI-bot} other {# AI-bots}} gedeeld door {name} (@{username}) op prompts.chat, de gratis open-source promptbibliotheek.",
+      "descriptionBotsOnly": "Bekijk {botCount, plural, one {# AI-bot} other {# AI-bots}} gedeeld door {name} (@{username}) op prompts.chat, de gratis open-source promptbibliotheek."
     },
     "bookChapter": {
       "title": "{chapter} - Gids voor prompt engineering"

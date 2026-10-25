@@ -3,8 +3,10 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { getTranslations, getLocale } from "next-intl/server";
 import { formatDistanceToNow } from "@/lib/date";
-import { getPromptUrl } from "@/lib/urls";
-import { Calendar, ArrowBigUp, FileText, Settings, GitPullRequest, Clock, Check, X, Pin, BadgeCheck, Users, ShieldCheck, Heart, ImageIcon } from "lucide-react";
+import { getBotUrl, getPromptUrl } from "@/lib/urls";
+import { Calendar, ArrowBigUp, Bot, ChevronLeft, ChevronRight, FileText, Settings, GitPullRequest, Clock, Check, X, Pin, BadgeCheck, Users, ShieldCheck, Heart, ImageIcon } from "lucide-react";
+import { BotCard } from "@/components/bots/bot-card";
+import { listBotsByAuthor, publicBotWhere } from "@/lib/bots";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import config from "@/../prompts.config";
@@ -25,7 +27,7 @@ import { escapeLikePattern } from "@/lib/utils";
 
 interface UserProfilePageProps {
   params: Promise<{ username: string }>;
-  searchParams: Promise<{ page?: string; tab?: string; date?: string }>;
+  searchParams: Promise<{ page?: string; botsPage?: string; tab?: string; date?: string }>;
 }
 
 export async function generateMetadata({ params, searchParams }: UserProfilePageProps): Promise<Metadata> {
@@ -49,7 +51,7 @@ export async function generateMetadata({ params, searchParams }: UserProfilePage
       bio: true,
       _count: {
         select: {
-          prompts: { where: { isPrivate: false, isUnlisted: false, deletedAt: null } },
+          prompts: { where: { isPrivate: false, isUnlisted: false, deletedAt: null, type: { not: "BOT" } } },
         },
       },
     },
@@ -59,11 +61,18 @@ export async function generateMetadata({ params, searchParams }: UserProfilePage
     return { title: "User Not Found", robots: NOINDEX_ROBOTS };
   }
 
+  const publicBotCount = await db.prompt.count({ where: { ...publicBotWhere, author: { username: user.username } } });
+  const promptCount = user._count.prompts;
   const t = await getTranslations("seo");
   const name = user.name || user.username;
   const page = Math.max(1, parseInt(pageParam || "1") || 1);
   const title = t("profile.title", { name, username: user.username });
-  const description = t("profile.description", { name, username: user.username, count: user._count.prompts });
+  const descriptionValues = { name, username: user.username, count: promptCount, botCount: publicBotCount };
+  const description = publicBotCount === 0
+    ? t("profile.description", descriptionValues)
+    : promptCount === 0
+      ? t("profile.descriptionBotsOnly", descriptionValues)
+      : t("profile.descriptionWithBots", descriptionValues);
 
   return buildPageMetadata({
     title: page > 1 ? `${title} - ${t("page", { page })}` : title,
@@ -71,14 +80,14 @@ export async function generateMetadata({ params, searchParams }: UserProfilePage
     path: paginatedPath(`/@${user.username}`, page),
     openGraphType: "profile",
     image: "route",
-    // Profiles without public prompts are thin; secondary tabs and day filters repeat other pages
-    noindex: user._count.prompts === 0 || (!!tab && tab !== "prompts") || !!date,
+    // Profiles without public prompts or bots are thin; secondary tabs and day filters repeat other pages
+    noindex: (promptCount === 0 && publicBotCount === 0) || (!!tab && tab !== "prompts") || !!date,
   });
 }
 
 export default async function UserProfilePage({ params, searchParams }: UserProfilePageProps) {
   const { username: rawUsername } = await params;
-  const { page: pageParam, tab, date: dateFilter } = await searchParams;
+  const { page: pageParam, botsPage: botsPageParam, tab, date: dateFilter } = await searchParams;
   const session = await auth();
   const t = await getTranslations("user");
   const tChanges = await getTranslations("changeRequests");
@@ -111,7 +120,7 @@ export default async function UserProfilePage({ params, searchParams }: UserProf
       customLinks: true,
       _count: {
         select: {
-          prompts: true,
+          prompts: { where: { type: { not: "BOT" } } },
           contributions: true,
         },
       },
@@ -124,6 +133,7 @@ export default async function UserProfilePage({ params, searchParams }: UserProf
 
   const page = Math.max(1, parseInt(pageParam || "1") || 1);
   const perPage = 24;
+  const botsPage = Math.max(1, parseInt(botsPageParam || "1") || 1);
   const isOwner = session?.user?.id === user.id;
   const isUnclaimed = user.email?.endsWith("@unclaimed.prompts.chat") ?? false;
 
@@ -141,6 +151,7 @@ export default async function UserProfilePage({ params, searchParams }: UserProf
   const where = {
     authorId: user.id,
     deletedAt: null,
+    type: { not: "BOT" as const },
     incomingConnections: { none: { label: { not: "related" } } },
     ...(isOwner ? {} : { isPrivate: false }),
     ...(validFilterDateStart && validFilterDateEnd ? {
@@ -190,7 +201,7 @@ export default async function UserProfilePage({ params, searchParams }: UserProf
   oneYearAgo.setHours(0, 0, 0, 0);
 
   // Fetch prompts, pinned prompts, contributions, liked prompts, user examples, counts, and activity data
-  const [promptsRaw, total, totalUpvotes, pinnedPromptsRaw, contributionsRaw, likedPromptsRaw, userExamplesRaw, privatePromptsCount, activityPrompts, activityVotes, activityChangeRequests, activityComments] = await Promise.all([
+  const [promptsRaw, total, totalUpvotes, pinnedPromptsRaw, contributionsRaw, likedPromptsRaw, userExamplesRaw, privatePromptsCount, activityPrompts, activityVotes, activityChangeRequests, activityComments, { bots, total: botsTotal }, publicBotCount] = await Promise.all([
     db.prompt.findMany({
       where,
       orderBy: { createdAt: "desc" },
@@ -207,7 +218,7 @@ export default async function UserProfilePage({ params, searchParams }: UserProf
       },
     }),
     db.pinnedPrompt.findMany({
-      where: { userId: user.id },
+      where: { userId: user.id, prompt: { type: { not: "BOT" } } },
       orderBy: { order: "asc" },
       include: {
         prompt: {
@@ -271,6 +282,7 @@ export default async function UserProfilePage({ params, searchParams }: UserProf
         authorId: user.id,
         isPrivate: true,
         deletedAt: null,
+        type: { not: "BOT" },
       },
     }) : Promise.resolve(0),
     // Activity: prompts created in last year
@@ -305,6 +317,8 @@ export default async function UserProfilePage({ params, searchParams }: UserProf
       },
       select: { createdAt: true },
     }),
+    listBotsByAuthor(user.id, { includePrivate: isOwner, skip: (botsPage - 1) * perPage, take: perPage }),
+    db.prompt.count({ where: { ...publicBotWhere, authorId: user.id } }),
   ]);
 
   // Transform to include voteCount and contributorCount
@@ -370,6 +384,8 @@ export default async function UserProfilePage({ params, searchParams }: UserProf
   const pinnedIds = new Set<string>(pinnedPrompts.map((p: { id: string }) => p.id));
 
   const totalPages = Math.ceil(total / perPage);
+  const botsTotalPages = Math.ceil(botsTotal / perPage);
+  const botsPageHref = (n: number) => `/@${user.username}?tab=bots${n > 1 ? `&botsPage=${n}` : ""}`;
 
   // Fetch change requests for this user
   // 1. Change requests the user submitted (all statuses for owner, approved only for others)
@@ -399,6 +415,7 @@ export default async function UserProfilePage({ params, searchParams }: UserProf
             id: true,
             slug: true,
             title: true,
+            type: true,
             author: {
               select: {
                 id: true,
@@ -435,6 +452,7 @@ export default async function UserProfilePage({ params, searchParams }: UserProf
             id: true,
             slug: true,
             title: true,
+            type: true,
             author: {
               select: {
                 id: true,
@@ -456,7 +474,7 @@ export default async function UserProfilePage({ params, searchParams }: UserProf
 
   const pendingCount = submittedChangeRequests.filter((cr) => cr.status === "PENDING").length +
     receivedChangeRequests.filter((cr) => cr.status === "PENDING").length;
-  const defaultTab = tab === "changes" ? "changes" : tab === "contributions" ? "contributions" : tab === "likes" ? "likes" : tab === "examples" ? "examples" : "prompts";
+  const defaultTab = tab === "changes" ? "changes" : tab === "bots" ? "bots" : tab === "contributions" ? "contributions" : tab === "likes" ? "likes" : tab === "examples" ? "examples" : "prompts";
 
   const statusColors = {
     PENDING: "bg-yellow-500/10 text-yellow-600 dark:text-yellow-400 border-yellow-500/20",
@@ -481,6 +499,7 @@ export default async function UserProfilePage({ params, searchParams }: UserProf
           bio: user.bio,
           createdAt: user.createdAt,
           promptCount: user._count.prompts,
+          botCount: publicBotCount,
         })}
       />
       {/* Profile Header */}
@@ -564,6 +583,13 @@ export default async function UserProfilePage({ params, searchParams }: UserProf
             <span className="font-medium">{user._count.prompts}</span>
             <span className="text-muted-foreground">{t("prompts").toLowerCase()}</span>
           </div>
+          {botsTotal > 0 && (
+            <div className="flex items-center gap-1.5">
+              <Bot className="h-4 w-4 text-muted-foreground" />
+              <span className="font-medium">{botsTotal}</span>
+              <span className="text-muted-foreground">{t("botsCount")}</span>
+            </div>
+          )}
           <div className="flex items-center gap-1.5">
             <ArrowBigUp className="h-4 w-4 text-muted-foreground" />
             <span className="font-medium">{totalUpvotes}</span>
@@ -593,6 +619,15 @@ export default async function UserProfilePage({ params, searchParams }: UserProf
           <TabsTrigger value="prompts" className="gap-2">
             <FileText className="h-4 w-4" />
             {t("prompts")}
+          </TabsTrigger>
+          <TabsTrigger value="bots" className="gap-2">
+            <Bot className="h-4 w-4" />
+            {t("bots")}
+            {botsTotal > 0 && (
+              <Badge variant="secondary" className="ml-1 h-5 min-w-5 px-1 text-xs">
+                {botsTotal}
+              </Badge>
+            )}
           </TabsTrigger>
           <TabsTrigger value="contributions" className="gap-2">
             <Users className="h-4 w-4" />
@@ -707,6 +742,45 @@ export default async function UserProfilePage({ params, searchParams }: UserProf
           ) : null}
         </TabsContent>
 
+        <TabsContent value="bots">
+          {botsTotal === 0 ? (
+            <div className="text-center py-12 border rounded-lg bg-muted/30">
+              <Bot className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
+              <p className="text-muted-foreground">{isOwner ? t("noBotsOwner") : t("noBots")}</p>
+              {isOwner && (
+                <Button asChild className="mt-4" size="sm">
+                  <Link href="/bots/new">{t("createFirstBot")}</Link>
+                </Button>
+              )}
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {bots.map((bot, index) => (
+                <BotCard key={bot.id} bot={bot} position={(botsPage - 1) * perPage + index + 1} />
+              ))}
+            </div>
+          )}
+          {botsTotalPages > 1 && (
+            <div className="flex items-center justify-center gap-2 mt-8">
+              <Button size="icon" variant="outline" className="h-8 w-8" disabled={botsPage <= 1} asChild={botsPage > 1}>
+                {botsPage > 1 ? (
+                  <Link href={botsPageHref(botsPage - 1)}><ChevronLeft className="h-4 w-4" /></Link>
+                ) : (
+                  <ChevronLeft className="h-4 w-4" />
+                )}
+              </Button>
+              <span className="text-sm tabular-nums px-2">{botsPage} / {botsTotalPages}</span>
+              <Button size="icon" variant="outline" className="h-8 w-8" disabled={botsPage >= botsTotalPages} asChild={botsPage < botsTotalPages}>
+                {botsPage < botsTotalPages ? (
+                  <Link href={botsPageHref(botsPage + 1)}><ChevronRight className="h-4 w-4" /></Link>
+                ) : (
+                  <ChevronRight className="h-4 w-4" />
+                )}
+              </Button>
+            </div>
+          )}
+        </TabsContent>
+
         <TabsContent value="contributions">
           {contributions.length === 0 ? (
             <div className="text-center py-12 border rounded-lg bg-muted/30">
@@ -765,7 +839,7 @@ export default async function UserProfilePage({ params, searchParams }: UserProf
                 return (
                   <Link 
                     key={cr.id} 
-                    href={`${getPromptUrl(cr.prompt.id, cr.prompt.slug)}/changes/${cr.id}`}
+                    href={`${cr.prompt.type === "BOT" ? getBotUrl(cr.prompt.id, cr.prompt.slug) : getPromptUrl(cr.prompt.id, cr.prompt.slug)}/changes/${cr.id}`}
                     className="flex items-center justify-between px-3 py-2 hover:bg-accent/50 transition-colors"
                   >
                     <div className="min-w-0 flex-1">
